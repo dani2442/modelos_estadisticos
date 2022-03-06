@@ -1,0 +1,6 @@
+In a study of cheddar cheese from the LaTrobe Valley of Victoria, Australia, samples of cheese were
+   analyzed for their chemical composition and were subjected to taste tests. Overall taste scores were
+   obtained by combining the scores from several tasters.
+
+El dataframe cheddar consiste de 30 muestras de queso cheddar en las que se ha medido el sabor (Taste) y
+   las concentraciones de ácido acético (Acetic), ácido sulfhídrico (H2S) y lactosa (Lactose).
