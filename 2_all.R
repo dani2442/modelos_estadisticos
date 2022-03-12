@@ -44,7 +44,9 @@ plot(L, T, main = "Relación entre Taste y Lactic",
 # Regresión Lineal Múltiple con todas las variables
 
 X <- cbind(rep(1,30),A,H,L) 
-beta <- solve(t(X)%*%X)%*%t(X)%*%T
+betahat <- solve(t(X)%*%X)%*%t(X)%*%T
+betahat <- c(betahat)
+betahat
 
 # Nótese que beta_1 ~ 0, esto puede indicarnos que Acetic 
 #   no tiene una gran influencia en la predicción de Taste.
