@@ -5,12 +5,24 @@ data(cheddar)
 print(cheddar)
 summary(cheddar)
 
-#Gráficos de las relaciones entre todas las variables.
+# Histogramas de todas las variables
+
+ids = names(cheddar)
+layout(matrix(1:4, nrow = 1))
+y_lab_string = "Quantity";
+for (id in ids){
+  hist(cheddar[,id], xlab=id, ylab=y_lab_string, main = paste("Histogram of ", id))
+  y_lab_string="";
+}
+cheddar[c("taste")]
+
+
+# Gráficos de las relaciones entre todas las variables.
 
 plot(cheddar)
 
-#Gráficos de dispersión entre la variable respuesta "Taste"
-# y las variables predictoras "Acetic", "H2S" y "Lactose".
+# Gráficos de dispersión entre la variable respuesta "Taste" y
+#  las variables predictoras "Acetic", "H2S" y "Lactose".
 
 T <- cheddar$taste
 A <- cheddar$Acetic
@@ -27,17 +39,7 @@ plot(H, T, main = "Relación entre Taste y H2S",
 
 plot(L, T, main = "Relación entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
-     pch = 20, frame = FALSE)
-
-
-ids = names(cheddar)
-layout(matrix(1:4, nrow = 1))
-y_lab_string = "Quantity";
-for (id in ids){
-  hist(cheddar[,id], xlab=id, ylab=y_lab_string, main = paste("Histogram of ", id))
-  y_lab_string="";
-}
-cheddar[c("taste")]
+     pch = 19, frame = FALSE)
 
 # Regresión Lineal Múltiple con todas las variables
 
