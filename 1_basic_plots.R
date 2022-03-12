@@ -40,5 +40,3 @@ plot(H, T, main = "Relación entre Taste y H2S",
 plot(L, T, main = "Relación entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
      pch = 19, frame = FALSE)
-
-
