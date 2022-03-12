@@ -50,3 +50,7 @@ betahat
 
 # Nótese que beta_1 ~ 0, esto puede indicarnos que Acetic 
 #   no tiene una gran influencia en la predicción de Taste.
+
+# Comprobemos que los valores obtenidos en el apartado anterior son correctos.
+model.lm <- lm(T~A+H+L, data=cheddar)
+model.lm$coefficients
