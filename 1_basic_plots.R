@@ -18,15 +18,14 @@ for (id in ids){
   hist(cheddar[,id], xlab=id, ylab=y_lab_string, main = paste("Histogram of ", id))
   y_lab_string="";
 }
-<<<<<<< Updated upstream
 cheddar[c("taste")]
 
 
-# Gr谩ficos de las relaciones entre todas las variables.
+# Gr醘icos de las relaciones entre todas las variables.
 
 plot(cheddar)
 
-# Gr谩ficos de dispersi贸n entre la variable respuesta "Taste" y
+# Gr醘icos de dispersi髇 entre la variable respuesta "Taste" y
 #  las variables predictoras "Acetic", "H2S" y "Lactose".
 
 T <- cheddar$taste
@@ -34,18 +33,17 @@ A <- cheddar$Acetic
 H <- cheddar$H2S
 L <- cheddar$Lactic
 
-plot(A, T, main = "Relaci贸n entre Taste y Acetic",
+plot(A, T, main = "Relaci髇 entre Taste y Acetic",
      xlab = "Acetic", ylab = "Taste",
      pch = 20, frame = FALSE)
 
-plot(H, T, main = "Relaci贸n entre Taste y H2S",
+plot(H, T, main = "Relaci髇 entre Taste y H2S",
      xlab = "H2S", ylab = "Taste",
      pch = 20, frame = FALSE)
 
-plot(L, T, main = "Relaci贸n entre Taste y Lactic",
+plot(L, T, main = "Relaci髇 entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
      pch = 19, frame = FALSE)
-=======
 
 
 #######   BOX PLOT 1 ############
@@ -74,11 +72,12 @@ for (id_x in ids){
     }else{
       x_lab_string = "";
     }
-    
-    plot(cheddar[,id_x],cheddar[,id_y], ylab=y_lab_string, xlab=x_lab_string)
+    X = cheddar[,id_x]
+    Y = cheddar[,id_y]
+    plot(X,Y, ylab=y_lab_string, xlab=x_lab_string)
+    abline(lm(Y ~ X, data=cheddar), col = "blue")
     j=j+1;  
   }
   i=1+1;
 }
 
->>>>>>> Stashed changes
