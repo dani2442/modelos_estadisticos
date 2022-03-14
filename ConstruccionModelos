@@ -1,0 +1,82 @@
+
+#install.packages("faraway")
+library(faraway)
+
+cheddar
+head(cheddar)
+summary(cheddar)
+plot(cheddar)
+model1.lm<-lm(taste~Acetic+H2S+Lactic, data=cheddar)
+plot(model1.lm)
+
+typeof(cheddar$taste)
+typeof(cheddar$Acetic)
+typeof(cheddar$H2S)
+typeof(cheddar$Lactic)
+#Todas numericas se procede como siempre
+
+
+
+#### Regresión de método backwards ####
+#metodo backwards alpha es 0.2, en realidad sirve un alpha como poco 0.02
+model.all<-lm(taste~.,data=cheddar)
+drop1(model.all,test="F")
+#actualizamos el modelo sin Ac porque es la de mayor pvalue
+model.update1<-update(model.all, .~. -Acetic)
+drop1(model.update1,test="F")
+
+#ahora si' es el modelo final, en realidad vale con alpha 0,05 tambien hasta 0,02
+model.final<-lm(taste~H2S+Lactic, data=cheddar)
+summary(model.final)
+
+
+#### Regresión de metodo fordward ####
+
+#metodo fordward alpha es 0,2, en realidad sirve un alpha como poco 0.02
+SCOPE<-(~.+Acetic + H2S + Lactic)
+model.inicial <- lm(taste~1,data=cheddar)
+add1(model.inicial,scope=SCOPE,test="F")
+#actualizamos aÃ±adiendo el de menor pvalue
+model.updatei1<-update(model.inicial, .~. +H2S)
+add1(model.updatei1,scope=SCOPE,test="F")
+
+model.updatei2<-update(model.updatei1, .~. +Lactic)
+add1(model.updatei2,scope=SCOPE,test="F")
+
+#ahora si' es el modelo final, igual vale con alpha de minimo 0.02
+model.final2<-lm(taste~H2S+Lactic, data=cheddar)
+summary(model.final)#es igual al model.final1
+
+
+#### ahora cosas de criterios ####
+#install.packages("leaps")
+library(leaps)
+
+models<-regsubsets(taste~., data=cheddar)
+summary(models)
+MR2adj<-summary(models)$adjr2
+MR2adj
+which.max(MR2adj)
+summary(models)$which[2, ]
+model.final3<-lm(taste~H2S+Lactic, data=cheddar)
+plot(models,scale="adjr2")#se busca el máximo y se ve como crece
+
+MCp <-summary(models)$cp
+which.min(MCp)
+summary(models)$which[2, ]
+model.final4<-lm(taste~H2S+Lactic, data=cheddar)
+plot(models,scale="Cp")##se busca el minimo y se ve como decrece
+
+MBIC <-summary(models)$bic
+which.min(MBIC)
+summary(models)$which[2, ]
+model.final5<-lm(taste~H2S+Lactic, data=cheddar)
+plot(models,scale="bic")
+
+
+#install.packages("MASS")
+library(MASS)
+model.all <- lm(taste~., data=cheddar)
+SCOPE <-(~.)
+stepAIC(model.all, scope=SCOPE, k=2)
+#Observese todos los metodos por criterios y por pasos nos llevan al mismo modelo
