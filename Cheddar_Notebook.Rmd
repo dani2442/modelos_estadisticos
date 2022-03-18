@@ -1,0 +1,79 @@
+---
+title: "Cheddar Faraway"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+### 1. Introducción
+
+Tenenemos un conjunto de datos en el que se recogen observaciones de una cata de
+quesos, nuestras variables son:   
+
+
+**· Taste:** una valoración subjetiva de los jueces.   
+
+**· Acetic:** la concentración de ácido acético en un queso de terminado en esca
+la logarítmica  
+
+**· H2S:** la concentración de sulfito de hidrógeno en escala logarítmica.
+
+**· Lactic:** Concentración de ácido láctico
+
+```{r}
+library(faraway)
+data(cheddar)
+head(cheddar)
+```
+
+```{r}
+sapply(cheddar, class)
+```
+
+Al ser todas numéricas no hay que hacer encoding a variables binarias
+
+Usamos el número de observaciones para determinar los conjuntos de train y
+test
+
+```{r}
+numObs <- dim(cheddar)[1]
+numObs
+```
+Tenemos 30 observaciones, ¿Tenemos alguna en la que falten datos?
+¿Tenemos outliers?  
+Esto lo trataremos en la sección 4
+
+
+```{r}
+# Para asegurar que sea reproducible
+
+set.seed(101)
+sample <- sample.int(n = nrow(cheddar), 
+                     size = floor(.7 * nrow(cheddar)), 
+                     replace = F)
+train <- cheddar[sample, ]
+test <- cheddar[-sample, ]
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
