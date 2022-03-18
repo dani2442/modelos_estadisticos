@@ -1,8 +1,10 @@
 ---
 title: "Cheddar Faraway"
 output:
-  pdf_document: default
+  html_document:
+    df_print: paged
   html_notebook: default
+  pdf_document: default
 ---
 
 ### 1. Introducción
@@ -57,8 +59,54 @@ test <- cheddar[-sample, ]
 ```
 
 
+### 2.Estudio y evaluación del modelo completo.  
+
+Simplificamos nuestra notación para las variables, la que intentaremos predecir
+es taste.
+
+```{r}
+T <- cheddar$taste
+A <- cheddar$Acetic
+H <- cheddar$H2S
+L <- cheddar$Lactic
+```
 
 
+Definimos nuestro modelo completo:
+
+```{r}
+model.completo.lm <- lm(T~A+H+L, data=train)
+plot(model.completo.lm)
+```
+
+```{r}
+cor(train)
+shapiro.test(resid(model.completo.lm))
+
+```
+Observamos que estamos en la hipótesis de que el error nuestro modelo se
+distribuye de manera normal.  
+
+¿Tienen todas las variables un impacto relevante en el modelo?
+
+```{r}
+summary(model.completo.lm)
+betahat<- matrix(coef(model.completo.lm),ncol=1)
+```
+
+Obervamos el p-valor de A nos indica que con casi toda seguridad A no tiene 
+impacto real en el modelo ( > 0.94)
+
+
+```{r}
+anova(model.completo.lm)
+```
+
+Los p-valores son lo suficientemente bajos como para rechazar varianza constante  
+
+Una vez hemos concluido que aunque estamos en las hipótesis de regresión lineal
+el modelo completo a pesar de ser el más complejo probablemente da resultados 
+similares a otro más simple.
 
 
 
