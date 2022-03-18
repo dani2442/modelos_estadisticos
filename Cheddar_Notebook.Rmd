@@ -106,22 +106,112 @@ Los p-valores son lo suficientemente bajos como para rechazar varianza constante
 
 Una vez hemos concluido que aunque estamos en las hipótesis de regresión lineal
 el modelo completo a pesar de ser el más complejo probablemente da resultados 
-similares a otro más simple.
+similares a otro más simple.  
+
+### 3.¿Cuál es el mejor modelo?
+
+#### 3.1. Método Backward  
+
+Partimos del modelo completo estudiado en la sección anterior y aplicamos con
+\alpha = 0.05.
+
+```{r}
+drop1(model.completo.lm, test = "F")
+```
+    
+Quitamos Acetic del modelo debido que su p-valor es > 0.05 
+```{r}
+model.update1 <- update(model.completo.lm, . ~ . - A)
+drop1(model.update1, test = "F")
+```
+
+Todos los p-valores son menores que \alpha = 0.05 por lo tanto hemos concluido
+
+```{r}
+model.backward.lm <- lm(T~H+L, data = train)
+summary(model.backward.lm)
+```
+
+#### 3.1. Método Backward 
 
 
+```{r}
+SCOPE<-(~.+A + H + L)
+model.inicial <- lm(T~1,data=train)
+add1(model.inicial,scope=SCOPE,test="F")
+
+```
 
 
+Actualizamos añadiendo el de menor pvalue
+```{r}
+model.updatei1 <- update(model.inicial, .~. +H)
+add1(model.updatei1,scope=SCOPE,test="F")
+```
 
 
+```{r}
+model.updatei2<-update(model.updatei1, .~. +L)
+add1(model.updatei2,scope=SCOPE,test="F")
+```
+Ahora es el modelo final, igual vale con alpha de minimo 0.02
+
+```{r}
+model.forward.lm<-lm(T~H+L, data=train)
+summary(model.forward.lm)
+```
+
+#### 3.3.Construcción por criterios
+
+Necesitaremos la librería leaps para esta subsección.
+
+```{r}
+library(leaps)
+```
 
 
+```{r}
+models<-regsubsets(taste~., data=train)
+summary(models)
+```
 
 
+```{r}
+MR2adj<-summary(models)$adjr2
+MR2adj
+which.max(MR2adj)
+summary(models)$which[2, ]
+```
 
+```{r}
+model.final3<-lm(taste~H2S+Lactic, data=train)
+plot(models,scale="adjr2")
+```
+Se busca el máximo y se ve como crece
 
+```{r}
+MCp <-summary(models)$cp
+which.min(MCp)
+summary(models)$which[2, ]
+model.final4<-lm(taste~H2S+Lactic, data=train)
+plot(models,scale="Cp")
+```
 
+Se busca el minimo y se ve como decrece
+```{r}
+MBIC <-summary(models)$bic
+which.min(MBIC)
+summary(models)$which[2, ]
+model.final5<-lm(taste~H2S+Lactic, data=train)
+plot(models,scale="bic")
+```
 
+```{r}
+library(MASS)
+model.completo.lm <- lm(taste~., data=train)
+SCOPE <-(~.)
+stepAIC(model.completo.lm, scope=SCOPE, k=2)
+```
 
-
-
+Obsérvese todos los metodos por criterios y por pasos nos llevan al mismo modelo
 
