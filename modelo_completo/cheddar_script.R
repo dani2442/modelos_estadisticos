@@ -9,10 +9,7 @@ data(cheddar)
 head(cheddar)
 
 # Estudiamos que tipo de variables van a formar parte de los posibles modelos
-typeof(cheddar$taste)
-typeof(cheddar$Acetic)
-typeof(cheddar$H2S)
-typeof(cheddar$Lactic)
+sapply(cheddar,class)
 # Dado que todas las variables son numéricas procedemos de la forma habitual
 
 attach(cheddar)
