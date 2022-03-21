@@ -3,7 +3,7 @@ library(faraway)
 library(car)
 
 
-# 1) IntroducciÛn
+# 1) Introducci√≥n
 
 data(cheddar)
 head(cheddar)
@@ -13,17 +13,17 @@ typeof(cheddar$taste)
 typeof(cheddar$Acetic)
 typeof(cheddar$H2S)
 typeof(cheddar$Lactic)
-# Dado que todas las variables son numÈricas procedemos de la forma habitual
+# Dado que todas las variables son num√©ricas procedemos de la forma habitual
 
 attach(cheddar)
 
 # Variable Respuesta: taste
 # Variables Predictoras: Acetic, H2S, Lactic
 
-# SeparaciÛn entre training y test sets (70-30%)
+# Separaci√≥n entre training y test sets (70-30%)
 # ----------
 
-# 2) Estudio y evaluaciÛn del modelo completo
+# 2) Estudio y evaluaci√≥n del modelo completo
 
 x <- model.matrix( ~ Acetic + H2S + Lactic , data=cheddar)
 betahat <- solve(crossprod(x,x),crossprod(x,taste))
@@ -45,7 +45,7 @@ cor(cheddar)
 
 
 
-# 3) SelecciÛn del mejor modelo. MÈtodos por paso y por criterios
+# 3) Selecci√≥n del mejor modelo. M√©todos por paso y por criterios
 
 # i) BACKWARD (alpha=0.05)
 
@@ -54,7 +54,7 @@ drop1(model.all, test="F")
 
 model.updateB1 <- update(model.all, .~. -Acetic)
 drop1(model.updateB1, test="F")
-# dado que ning˙n p-valor supera alpha, tenemos nuestro modelo final
+# dado que ning√∫n p-valor supera alpha, tenemos nuestro modelo final
 
 model.final1 <- lm(taste ~ H2S + Lactic, data=cheddar)
 summary(model.final1)
@@ -63,18 +63,18 @@ summary(model.final1)
 # ii) FORWARD (alpha=0.05)
 
 SCOPE <- (~. + Acetic + H2S + Lactic)
-model.inicial <- lm(taste ~ 1, data=cheddar) # sÛlo tÈrmino independiente
+model.inicial <- lm(taste ~ 1, data=cheddar) # s√≥lo t√©rmino independiente
 
 add1(model.inicial, scope=SCOPE, test="F")
-# aÒadimos H2S por ser la variable predictora con menor p-valor
+# a√±adimos H2S por ser la variable predictora con menor p-valor
 model.updateF1 <- update(model.inicial, .~. + H2S)
 
 add1(model.updateF1, scope=SCOPE, test="F")
-# aÒadimos Lactic por ser la ˙nica variable predictora con p-valor < alpha
+# a√±adimos Lactic por ser la √∫nica variable predictora con p-valor < alpha
 model.updateF2 <- update(model.updateF1, .~. + Lactic)
 
 add1(model.updateF2, scope=SCOPE, test="F")
-# no aÒadimos Acetic al modelo pues su p-valor es mayor que alpha
+# no a√±adimos Acetic al modelo pues su p-valor es mayor que alpha
 
 model.final2 <- lm(taste ~ H2S + Lactic, data=cheddar)
 summary(model.final2)
@@ -95,34 +95,34 @@ MCp <-summary(models)$cp
 MCp
 which.min(MCp)
 
-# Criterio de InformaciÛn de Bayes (BIC)
+# Criterio de Informaci√≥n de Bayes (BIC)
 MBIC <-summary(models)$bic
 MBIC
 which.min(MBIC)
 
-# Criterio de InformaciÛn de Akaike (AIC)
+# Criterio de Informaci√≥n de Akaike (AIC)
 install.packages("MASS")
 library(MASS)
 model.all <- lm(taste~., data=cheddar)
 #SCOPE <-(~.)
 stepAIC(model.all, scope=SCOPE, k=2)
 
-# NÛtese que los modelos obtenidos por i), ii) y iii) son el mismo.
+# N√≥tese que los modelos obtenidos por i), ii) y iii) son el mismo.
 
 anova(model.final1,model.all)
 
 
-# 4) DiagnÛstico
+# 4) Diagn√≥stico
 
 plot(model.final1)
 
-# Normalidad y AutocorrelaciÛn
+# Normalidad y Autocorrelaci√≥n
 shapiro.test(resid(model.final1)) # normalidad de los residuos
 durbinWatsonTest(model.final1)
 
 # Bonferroni
 alpha <- 0.05
-BCV <- qt(1-alpha/(2*30),26) #el valor crÌtico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
+BCV <- qt(1-alpha/(2*30),26) #el valor cr√≠tico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
 BCV
 sum(abs(rstudent(model.final1))>BCV)
 which.max(abs(rstudent(model.final1)))
@@ -173,7 +173,7 @@ sum(dfbetamodel[,3]>dfbetaCV)
 which(dfbetamodel[,1]>dfbetaCV)
 which(dfbetamodel[,3]>dfbetaCV)
 
-# Gr·fica con su distancia de Cook
+# Gr√°fica con su distancia de Cook
 influencePlot(model.final1)
 pos_influyentes <- c(6,7,8,12,15)
 
@@ -214,10 +214,10 @@ coef(regfit.best,which.min(val.errors))
 
 
 
-# validaciÛn cruzada de 1
+# validaci√≥n cruzada de 1
 
 n <- nrow(cheese)
-k <- n #n˙mero de grupos, como es de elemento a elemento hay n
+k <- n #n√∫mero de grupos, como es de elemento a elemento hay n
 
 folds <- sample (x=1:k, size=nrow(cheese), replace=FALSE)
 cv.errors <- matrix(NA, k,3, dimnames = list(NULL,paste(1:3)))
@@ -235,10 +235,10 @@ coef(best.fit,which.min(mean.cv.errors))
 
 
 
-# validaciÛn en 4 grupos, cambiar la linea de k para otro numero
+# validaci√≥n en 4 grupos, cambiar la linea de k para otro numero
 
 n <- nrow(cheese)
-k <- 4  # n˙mero de grupos 
+k <- 4  # n√∫mero de grupos 
 
 folds <- sample (x=1:k, size=nrow(cheese), replace=TRUE)
 cv.errors <- matrix(NA, k,3, dimnames = list(NULL,paste(1:3)))
@@ -253,7 +253,7 @@ mean.cv.errors <- apply(cv.errors, 2, mean)
 mean.cv.errors
 coef(best.fit,which.min(mean.cv.errors))
 
-# comprobaciÛn
+# comprobaci√≥n
 model.cv <- lm(taste ~ H2S + Lactic, data=cheese)
 summary(model.cv)
 plot(lm(taste~H2S+Lactic, data=cheese), which=1)
@@ -266,7 +266,7 @@ influenceIndexPlot(model.cv)
 
 #calculo de intervalo de conf de beta1(H2S) y 2(Lactic)
 #[seria beta 2 y 3 si lo interpreto del modelo original]
-#mÈtodo Bonferroni
+#m√©todo Bonferroni
 model.y <- lm(taste~H2S+Lactic, data=cheddar)
 alpha <- 0.10
 summary(model.y)$coef
@@ -282,7 +282,7 @@ bnam <- c("H2S", "Lactic")
 dimnames(BomSimCI)<-list(bnam,conf)
 BomSimCI
 
-#Intervalo de confianza simult·neo por el mÈtodo de ScheffÈ
+#Intervalo de confianza simult√°neo por el m√©todo de Scheff√©
 Q <- p-1
 f_teo <- qf(0.9,Q,n-p)
 SchSimCI <- matrix (c(b-sqrt(Q*f_teo)*s.b,b+sqrt(Q*f_teo)*s.b),ncol=2)
@@ -302,12 +302,12 @@ abline(h=BomSimCI[2,])
 
 confidenceEllipse(model.y, level=0.90, which.coef = c(2,3),
                   Scheffe = TRUE, main="")
-title(main="Elipsoide de confianza ScheffÈ")
+title(main="Elipsoide de confianza Scheff√©")
 abline(v=SchSimCI[1,])
 abline(h=SchSimCI[2,])
 
 
-######### cosas haciendo boxcox y despuÈs de hacerlo ...######
+######### cosas haciendo boxcox y despu√©s de hacerlo ...######
 
 #training con boxcox y despues lo comparo
 install.packages("car")
@@ -366,7 +366,7 @@ coef(model.exh,which.min(val.errors))
 regfit.best <-regsubsets(taste~., cheddar[-obs.out,1:4])
 coef(regfit.best,which.min(val.errors))
 
-#para verlo m·s visual
+#para verlo m√°s visual
 
 val.errors
 val.errors2
