@@ -21,7 +21,8 @@ plot(cheddar)
 
 # Gráficos de dispersión entre la variable respuesta "Taste" y
 #  las variables predictoras "Acetic", "H2S" y "Lactose".
-
+attach(cheddar)
+layout(matrix(1:3, nrow = 1))
 plot(Acetic, taste, main = "Relación entre Taste y Acetic",
      xlab = "Acetic", ylab = "Taste",
      pch = 20, frame = FALSE)
@@ -34,6 +35,7 @@ plot(Lactic, taste, main = "Relación entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
      pch = 19, frame = FALSE)
 
+layout(matrix(1:1, nrow = 1))
 
 # 1) Introducción
 
