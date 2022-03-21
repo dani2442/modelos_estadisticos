@@ -378,6 +378,16 @@ coef(regfit.best,which.min(val.errors2))
 coef(regfit.best,which.min(val.errors))
 
 
+# 6) Conclusión
+
+model.final <- 
+summary(model.final) # de aquí sacamos las estimaciones de betahat y sigma
+# podemos usar una gráfica para visualizar el plano "predictor"
+
+# errores standard
+# p-valores
+# R2 ajustado
+
 
 
 
