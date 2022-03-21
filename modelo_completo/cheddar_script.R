@@ -1,8 +1,21 @@
-install.packages('faraway')
+install.packages("faraway")
+install.packages("leaps")
+install.packages("MASS")
+install.packages("PASWR")
+install.packages("car")
+install.packages("ggplot2")
+install.packages("GGally")
+install.packages("corrplot")#cuando se installe hay que dar al stop
+
+
 library(faraway)
+library(leaps)
+library(MASS)
+library(PASWR)
 library(car)
-
-
+library(ggplot2)
+library(GGally)
+library(corrplot)
 # Histogramas de todas las variables
 
 ids = names(cheddar)
@@ -14,6 +27,7 @@ for (id in ids){
 }
 cheddar[c("taste")]
 
+any(is.na(cheddar))
 
 # Gráficos de las relaciones entre todas las variables.
 
@@ -68,6 +82,12 @@ model.all$coefficients
 
 # Correlaciones y tabla de resultados con el estudio de sus p-valores
 cor(cheddar)
+ggpairs(cheddar)
+
+mat_cor<-cor(cheddar,method="pearson")
+corrplot(mat_cor, type="upper", order="hclust", tl.col="black", tl.srt=45)
+
+anova(model.all)
 
 
 #outlierTest(model.all) # comprobamos si hay outliers (no)
@@ -120,16 +140,19 @@ summary(models)
 MR2adj <-summary(models)$adjr2
 MR2adj
 which.max(MR2adj)
+summary(models)$which[which.max(MR2adj), ]
 
 # Cp de Mallows
 MCp <-summary(models)$cp
 MCp
 which.min(MCp)
+summary(models)$which[which.min(MCp), ]
 
 # Criterio de Información de Bayes (BIC)
 MBIC <-summary(models)$bic
 MBIC
 which.min(MBIC)
+summary(models)$which[which.min(MBIC), ]
 
 # Criterio de Información de Akaike (AIC)
 install.packages("MASS")
@@ -146,10 +169,20 @@ anova(model.final1,model.all)
 # 4) Diagnóstico
 
 plot(model.final1)
+fmodel <-fortify(model.final1)
+head(fmodel)
 
 # Normalidad y Autocorrelación
 shapiro.test(resid(model.final1)) # normalidad de los residuos
-durbinWatsonTest(model.final1)
+qqnorm(Model$.stdresid )# o la función 2 del plot anterior
+
+durbinWatsonTest(model.final1)    # no correlacion de errores
+                    #es en este en el que se suponen en un tiempo (INDEX)
+plot(residuals(model.final1), pch=19)
+plot(fmodel$.resid, ylab="Residuos")
+
+#INTRODUCIR HIPOTESIS DE MEDIA ERRORES NULA
+
 
 # Bonferroni
 alpha <- 0.05
@@ -162,15 +195,16 @@ which.max(abs(rstudent(model.final1)))
 install.packages("ggplot2")
 library(ggplot2)
 
-fmodel <-fortify(modelf.lm)
-head(fmodel)
 
 X <- fmodel$.fitted
 Y <- fmodel$.stdresid
 plot(X,Y, ylab="Residuos estandarizados", xlab="valores ajustados") 
 segments(5,0,40,0)
+#en esa grafico hablar de homocedasticidad (varianza constante)
 sort(abs(rstandard(model.final1)),decreasing = TRUE)[1:3]
 
+#mas  formas de verlo(formula del paquete car)(sino ver test White en otro package)
+ncvTest(model.final1)# p valor "grande" no hay evidencias para rechazar que sea cte
 
 # Outliers y High Leverage
 
