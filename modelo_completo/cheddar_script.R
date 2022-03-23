@@ -62,19 +62,19 @@ plot(cheddar)
 layout(matrix(1:3, nrow = 1))
 
 plot(Acetic, taste,
-     main = "RelaciÃ³n entre Taste y Acetic",
+     main = "Relación entre Taste y Acetic",
      xlab = "Acetic", ylab = "Taste",
      pch = 20, frame = FALSE)
 
 
 plot(H2S, taste,
-     main = "RelaciÃ³n entre Taste y H2S",
+     main = "Relación entre Taste y H2S",
      xlab = "H2S", ylab = "Taste",
      pch = 20, frame = FALSE)
 
 
 plot(Lactic, taste,
-     main = "RelaciÃ³n entre Taste y Lactic",
+     main = "Relación entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
      pch = 19, frame = FALSE)
 
@@ -137,15 +137,15 @@ SCOPE <- (~ . + Acetic + H2S + Lactic)
 model.inicial <- lm(taste ~ 1, data = cheddar[train,]) # solo el termino independiente
 
 add1(model.inicial, scope = SCOPE, test = "F")
-# Añadimos Lactic por ser la variable predictora con menor p-valor
+# A�adimos Lactic por ser la variable predictora con menor p-valor
 model.updateF1 <- update(model.inicial, . ~ . + Lactic)
 
 add1(model.updateF1, scope = SCOPE, test = "F")
-# no añadimos ninguna variable pues sus p-valores superan la barrera de alpha
+# no a�adimos ninguna variable pues sus p-valores superan la barrera de alpha
 
 model.final2 <- lm(taste ~ Lactic, data = cheddar[train,])
 summary(model.final2)
-# Nótese que los modelos obtenidos por metodos de pasos coinciden
+# N�tese que los modelos obtenidos por metodos de pasos coinciden
 
 model.step <- lm(taste ~ Lactic, data = cheddar[train,])
 anova(model.step, model.all)
@@ -200,12 +200,39 @@ plot(fmodel$.resid, ylab = "Residuos")
 
 
 # INTRODUCIR HIPOTESIS DE MEDIA ERRORES NULA
+
+# Estudio de hipótesis supuestas:
+
+residuos <- resid(model.y)
+
+
+# Los errores tienen distribución normal y media cero
+shapiro.test(residuos)
+
+t.test(residuos, mu = 0, alternative = "two.sided")
+t.test(resid(modelf2.lm), mu = 0, alternative = "two.sided")
+# ambos tienen p-valor 1
+
+# Los errores tienen varianza constante
+res.aov <- aov(model.y, data = cheddar)
+summary(res.aov)
+
+res.bcaov <- aov(modelf2.lm, data = cheddar)
+summary(res.aov)
+# con alpha = 0.05 se garantizan las dos.
+
+# Los errores no estan correlacionados
+acf(residuos)
+# Tiene que quedar 0 en 1 y el resto por debajo de nivel de signficacion, ocurre
+durbinWatsonTest(model.y)
+durbinWatsonTest(model.final1)
+# Comprobado
 # ----------
 
 
 # Bonferroni
 alpha <- 0.05
-BCV <- qt(1 - alpha / (2 * 30), 26) # el valor crÃ­tico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
+BCV <- qt(1 - alpha / (2 * 30), 26) # el valor crítico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
 BCV
 sum(abs(rstudent(model.final1)) > BCV)
 which.max(abs(rstudent(model.final1)))
@@ -387,17 +414,17 @@ confidenceEllipse(model.y,
                   level = 0.90, which.coef = c(2, 3),
                   Scheffe = TRUE, main = ""
 )
-title(main = "Elipsoide de confianza ScheffÃ©")
+title(main = "Elipsoide de confianza Scheffé")
 abline(v = SchSimCI[1, ])
 abline(h = SchSimCI[2, ])
 
 
 
-# Estudio de hipótesis supuestas:
+# Estudio de hip�tesis supuestas:
 
 residuos <- resid(model.y)
 
-# Los errores tienen distribución normal y media cero
+# Los errores tienen distribuci�n normal y media cero
 shapiro.test(residuos)
 
 t.test(residuos, mu = 0, alternative = "two.sided")
@@ -421,15 +448,15 @@ durbinWatsonTest(model.final1)
 # Comprobado
 
 
-#### BoxCox: Estudio de hipótesis supuestas:
+#### BoxCox: Estudio de hip�tesis supuestas:
 
-# Los errores tienen distribución normal
+# Los errores tienen distribuci�n normal
 
 # Tiene media 0
 
 # Varianza constante
 
-# Los errores no está correlaciones
+# Los errores no est� correlaciones
 
 
 ######### cosas haciendo boxcox y despues de hacerlo ...######
@@ -490,7 +517,7 @@ coef(model.exh, which.min(val.errors))
 regfit.best <- regsubsets(taste ~ ., cheddar[-obs.out, 1:4])
 coef(regfit.best, which.min(val.errors))
 
-# para verlo mÃ¡s visual
+# para verlo más visual
 
 val.errors
 val.errors2
@@ -509,7 +536,7 @@ summary(model.final)
 # En el summary podemos observar tanto los valores de betahat, sus p-valores y sigma
 
 coeff <- summary(model.final)$coeff[,1]
-# La ecuación de nuestro modelo final es y = beta0 + beta1*x_H + beta2*x_L,
+# La ecuaci�n de nuestro modelo final es y = beta0 + beta1*x_H + beta2*x_L,
 #    donde x_H y x_L denotan los valores observados de H2S y Lactic.
 
 rse <- sqrt(deviance(model.final)/df.residual(model.final))
@@ -518,7 +545,7 @@ pval <- summary(model.final)$coeff[,4]
 anova(model.final)
 
 
-# Observamos como se distribuye la variable taste en función de H2S y Lactic
+# Observamos como se distribuye la variable taste en funci�n de H2S y Lactic
 plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", color=taste) %>% 
   layout(scene = list(xaxis = list(title = 'H2S (%)'),
                       yaxis = list(title = 'Lactic (%)'),
@@ -528,7 +555,6 @@ plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", color=taste) %>%
 # Vemos el plano de regresion del modelo propuesto.
 # En rojo se marcan las observaciones que peor se ajustan al modelo.
 planereg <- scatterplot3d(x=H2S, y=Lactic, z=taste, pch=16, cex.lab=1,
-                       highlight.3d=TRUE, type="h", xlab='H2S (%)',
-                       ylab='Lactic (%)', zlab='Taste (0-100)')
+                          highlight.3d=TRUE, type="h", xlab='H2S (%)',
+                          ylab='Lactic (%)', zlab='Taste (0-100)')
 planereg$plane3d(model.final, lty.box="solid", col='mediumblue')
-
