@@ -1,13 +1,18 @@
 ---
 title: "Cheddar Faraway"
 output:
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
   pdf_document: default
 ---
 
-### 1. Introducción
+# 1. Introducción
+
+En un estudio de queso Cheddar realizado en el Valle de Latrobe (Victoria, Australia), se estudiaron muestras de queso en las que se analizó su composición química y fueron dadas a probar a distintos sujetos para que valoraran su sabor. Los valores asignados a cada queso son el resultado de combinar las distintas valoraciones. 
+
+El DataFrame **cheddar** de la librería **faraway** consiste de 30 muestras de queso Cheddar en las que se ha medido el sabor (*taste*) y las concentraciones de ácido acético (*Acetic*), ácido sulfhídrico (*H2S*) y lactosa (*Lactic*).
+
 
 Tenenemos un conjunto de datos en el que se recogen observaciones de una cata de
 quesos, nuestras variables son:   
@@ -21,6 +26,7 @@ la logarítmica
 **· H2S:** la concentración de sulfito de hidrógeno en escala logarítmica.
 
 **· Lactic:** Concentración de ácido láctico
+
 
 ```{r}
 library(faraway)
@@ -214,4 +220,12 @@ stepAIC(model.completo.lm, scope=SCOPE, k=2)
 ```
 
 Obsérvese todos los metodos por criterios y por pasos nos llevan al mismo modelo
+
+
+#### 4- Diagnostic
+```{r}
+
+```
+
+
 
