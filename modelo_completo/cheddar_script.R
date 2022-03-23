@@ -21,11 +21,11 @@ library(plotly)
 library(scatterplot3d)
 
 
+
+
 # 1) Introduccion
 
-
 data(cheddar)
-attach(cheddar) # todas las variables son numericas
 
 # Variable Respuesta: taste
 # Variables Predictoras: Acetic, H2S, Lactic
@@ -39,7 +39,10 @@ head(cheddar)
 any(is.na(cheddar))
 
 # Separacion del dataset en conjuntos de entrenamiento y test (70-30%)
-# ----------
+set.seed(1) 
+train <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+train
+test <- (!train)
 
 
 # Histogramas de todas las variables
@@ -50,7 +53,6 @@ for (id in ids) {
   hist(cheddar[, id], xlab = id, ylab = y_lab_string, main = paste("Histogram of ", id))
   y_lab_string <- ""
 }
-cheddar[c("taste")]
 
 
 # Graficas de las relaciones entre variables.
@@ -82,20 +84,21 @@ layout(matrix(1:1, nrow = 1))
 
 
 # 2) Estudio y evaluacion del modelo completo
+attach(cheddar[train,])
 
-x <- model.matrix(~ Acetic + H2S + Lactic, data = cheddar)
+x <- model.matrix( ~ Acetic + H2S + Lactic, data = cheddar[train,])
 betahat <- solve(crossprod(x, x), crossprod(x, taste))
 betahat <- c(betahat)
 betahat
 
 # Comprobamos el resultado con funciones ya implementadas
-model.all <- lm(taste ~ ., data = cheddar)
+model.all <- lm(taste ~ ., data = cheddar[train,])
 summary(model.all)
 model.all$coefficients
 
 # Correlaciones y tabla de resultados con el estudio de sus p-valores
-cor(cheddar)
-ggpairs(cheddar)
+cor(cheddar[train,])
+ggpairs(cheddar[train,])
 
 mat_cor <- cor(cheddar, method = "pearson")
 corrplot(mat_cor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
@@ -118,36 +121,40 @@ drop1(model.all, test = "F")
 
 model.updateB1 <- update(model.all, . ~ . - Acetic)
 drop1(model.updateB1, test = "F")
-# dado que ningun p-valor supera alpha, tenemos nuestro modelo final
+# quitamos H2S del modelo por ser la unica variable con p-valor > 0.05
 
-model.final1 <- lm(taste ~ H2S + Lactic, data = cheddar)
+model.updateB2 <- update(model.updateB1, . ~ . - H2S)
+drop1(model.updateB2, test = "F")
+# termina el proceso pues el p-valor de Lactic supera a alpha
+
+model.final1 <- lm(taste ~ Lactic, data = cheddar[train,])
 summary(model.final1)
 
 
 # ii) FORWARD (alpha=0.05)
 
 SCOPE <- (~ . + Acetic + H2S + Lactic)
-model.inicial <- lm(taste ~ 1, data = cheddar) # solo el termino independiente
+model.inicial <- lm(taste ~ 1, data = cheddar[train,]) # solo el termino independiente
 
 add1(model.inicial, scope = SCOPE, test = "F")
-# Añadimos H2S por ser la variable predictora con menor p-valor
-model.updateF1 <- update(model.inicial, . ~ . + H2S)
+# Añadimos Lactic por ser la variable predictora con menor p-valor
+model.updateF1 <- update(model.inicial, . ~ . + Lactic)
 
 add1(model.updateF1, scope = SCOPE, test = "F")
-# Añadimos Lactic por ser la unica variable predictora con p-valor < alpha
-model.updateF2 <- update(model.updateF1, . ~ . + Lactic)
+# no añadimos ninguna variable pues sus p-valores superan la barrera de alpha
 
-add1(model.updateF2, scope = SCOPE, test = "F")
-# no añadimos Acetic al modelo pues su p-valor es mayor que alpha
-
-model.final2 <- lm(taste ~ H2S + Lactic, data = cheddar)
+model.final2 <- lm(taste ~ Lactic, data = cheddar[train,])
 summary(model.final2)
+# Nótese que los modelos obtenidos por metodos de pasos coinciden
+
+model.step <- lm(taste ~ Lactic, data = cheddar[train,])
+anova(model.step, model.all)
 
 
 # iii) CRITERIOS
 
 # R2 ajustado
-models <- regsubsets(taste ~ ., data = cheddar)
+models <- regsubsets(taste ~ ., data = cheddar[train,])
 summary(models)
 MR2adj <- summary(models)$adjr2
 MR2adj
@@ -167,18 +174,15 @@ which.min(MBIC)
 summary(models)$which[which.min(MBIC), ]
 
 # Criterio de Informacion de Akaike (AIC)
-install.packages("MASS")
-library(MASS)
-model.all <- lm(taste ~ ., data = cheddar)
-# SCOPE <-(~.)
 stepAIC(model.all, scope = SCOPE, k = 2)
 
-# Notese que los modelos obtenidos por i), ii) y iii) son el mismo.
-
-anova(model.final1, model.all)
+# Notese que los modelos obtenidos por metodos de criterios coinciden.
+model.crit <- lm(taste ~ H2S + Lactic, data=cheddar[train,])
+anova(model.crit, model.all)
 
 
 # 4) Diagnostico
+attach(cheddar)
 
 plot(model.final1)
 fmodel <- fortify(model.final1)
@@ -527,3 +531,4 @@ planereg <- scatterplot3d(x=H2S, y=Lactic, z=taste, pch=16, cex.lab=1,
                        highlight.3d=TRUE, type="h", xlab='H2S (%)',
                        ylab='Lactic (%)', zlab='Taste (0-100)')
 planereg$plane3d(model.final, lty.box="solid", col='mediumblue')
+
