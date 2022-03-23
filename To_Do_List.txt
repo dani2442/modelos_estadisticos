@@ -1,7 +1,7 @@
 To do list:
 	En latex_documento:
 		Ver los comentarios en el texto y escribir lo que diga (las conclusiones que se sacan meter fotos...)
-		
+		Añadir un analisis descriptivo de todo lo que tenemos para el punto 1 (pq son pocas variables)
 		Continuar (vamos por outliers/influyentes del punto 4)
 		Corregir todo lo necesario para lo del train y test en todo lo que ya este escrito
 
