@@ -5,7 +5,8 @@ install.packages("PASWR")
 install.packages("car")
 install.packages("ggplot2")
 install.packages("GGally")
-install.packages("corrplot")#cuando se installe hay que dar al stop
+install.packages("corrplot")
+install.packages("scatterplot3d")
 
 
 library(faraway)
@@ -16,8 +17,32 @@ library(car)
 library(ggplot2)
 library(GGally)
 library(corrplot)
-# Histogramas de todas las variables
+library(plotly)
+library(scatterplot3d)
 
+
+# 1) Introduccion
+
+
+data(cheddar)
+attach(cheddar) # todas las variables son numericas
+
+# Variable Respuesta: taste
+# Variables Predictoras: Acetic, H2S, Lactic
+
+
+# Estudiamos el tipo de las variables que van a formar parte de los posibles modelos
+sapply(cheddar, class)
+head(cheddar)
+
+# Comprobamos que no hay entradas vacias
+any(is.na(cheddar))
+
+# Separacion del dataset en conjuntos de entrenamiento y test (70-30%)
+# ----------
+
+
+# Histogramas de todas las variables
 ids <- names(cheddar)
 layout(matrix(1:4, nrow = 1))
 y_lab_string <- "Quantity"
@@ -27,54 +52,36 @@ for (id in ids) {
 }
 cheddar[c("taste")]
 
-any(is.na(cheddar))
 
-# Gráficos de las relaciones entre todas las variables.
-
+# Graficas de las relaciones entre variables.
 plot(cheddar)
 
-# Gráficos de dispersión entre la variable respuesta "Taste" y
-#  las variables predictoras "Acetic", "H2S" y "Lactose".
-attach(cheddar)
+# Graficas de dispersion entre la variable respuesta "taste" y las variables predictoras.
 layout(matrix(1:3, nrow = 1))
+
 plot(Acetic, taste,
-  main = "Relación entre Taste y Acetic",
-  xlab = "Acetic", ylab = "Taste",
-  pch = 20, frame = FALSE
-)
+     main = "RelaciÃ³n entre Taste y Acetic",
+     xlab = "Acetic", ylab = "Taste",
+     pch = 20, frame = FALSE)
+
 
 plot(H2S, taste,
-  main = "Relación entre Taste y H2S",
-  xlab = "H2S", ylab = "Taste",
-  pch = 20, frame = FALSE
-)
+     main = "RelaciÃ³n entre Taste y H2S",
+     xlab = "H2S", ylab = "Taste",
+     pch = 20, frame = FALSE)
+
 
 plot(Lactic, taste,
-  main = "Relación entre Taste y Lactic",
-  xlab = "Lactic", ylab = "Taste",
-  pch = 19, frame = FALSE
-)
+     main = "RelaciÃ³n entre Taste y Lactic",
+     xlab = "Lactic", ylab = "Taste",
+     pch = 19, frame = FALSE)
+
 
 layout(matrix(1:1, nrow = 1))
 
-# 1) Introducción
 
-data(cheddar)
-head(cheddar)
 
-# Estudiamos que tipo de variables van a formar parte de los posibles modelos
-sapply(cheddar, class)
-# Dado que todas las variables son numéricas procedemos de la forma habitual
-
-attach(cheddar)
-
-# Variable Respuesta: taste
-# Variables Predictoras: Acetic, H2S, Lactic
-
-# Separación entre training y test sets (70-30%)
-# ----------
-
-# 2) Estudio y evaluación del modelo completo
+# 2) Estudio y evaluacion del modelo completo
 
 x <- model.matrix(~ Acetic + H2S + Lactic, data = cheddar)
 betahat <- solve(crossprod(x, x), crossprod(x, taste))
@@ -102,7 +109,7 @@ anova(model.all)
 
 
 
-# 3) Selección del mejor modelo. Métodos por paso y por criterios
+# 3) Seleccion del mejor modelo. Metodos por pasos y por criterios
 
 # i) BACKWARD (alpha=0.05)
 
@@ -111,7 +118,7 @@ drop1(model.all, test = "F")
 
 model.updateB1 <- update(model.all, . ~ . - Acetic)
 drop1(model.updateB1, test = "F")
-# dado que ningún p-valor supera alpha, tenemos nuestro modelo final
+# dado que ningun p-valor supera alpha, tenemos nuestro modelo final
 
 model.final1 <- lm(taste ~ H2S + Lactic, data = cheddar)
 summary(model.final1)
@@ -120,14 +127,14 @@ summary(model.final1)
 # ii) FORWARD (alpha=0.05)
 
 SCOPE <- (~ . + Acetic + H2S + Lactic)
-model.inicial <- lm(taste ~ 1, data = cheddar) # sólo término independiente
+model.inicial <- lm(taste ~ 1, data = cheddar) # solo el termino independiente
 
 add1(model.inicial, scope = SCOPE, test = "F")
-# añadimos H2S por ser la variable predictora con menor p-valor
+# Añadimos H2S por ser la variable predictora con menor p-valor
 model.updateF1 <- update(model.inicial, . ~ . + H2S)
 
 add1(model.updateF1, scope = SCOPE, test = "F")
-# añadimos Lactic por ser la única variable predictora con p-valor < alpha
+# Añadimos Lactic por ser la unica variable predictora con p-valor < alpha
 model.updateF2 <- update(model.updateF1, . ~ . + Lactic)
 
 add1(model.updateF2, scope = SCOPE, test = "F")
@@ -136,9 +143,8 @@ add1(model.updateF2, scope = SCOPE, test = "F")
 model.final2 <- lm(taste ~ H2S + Lactic, data = cheddar)
 summary(model.final2)
 
+
 # iii) CRITERIOS
-install.packages("leaps")
-library(leaps)
 
 # R2 ajustado
 models <- regsubsets(taste ~ ., data = cheddar)
@@ -154,57 +160,57 @@ MCp
 which.min(MCp)
 summary(models)$which[which.min(MCp), ]
 
-# Criterio de Información de Bayes (BIC)
+# Criterio de Informacion de Bayes (BIC)
 MBIC <- summary(models)$bic
 MBIC
 which.min(MBIC)
 summary(models)$which[which.min(MBIC), ]
 
-# Criterio de Información de Akaike (AIC)
+# Criterio de Informacion de Akaike (AIC)
 install.packages("MASS")
 library(MASS)
 model.all <- lm(taste ~ ., data = cheddar)
 # SCOPE <-(~.)
 stepAIC(model.all, scope = SCOPE, k = 2)
 
-# Nótese que los modelos obtenidos por i), ii) y iii) son el mismo.
+# Notese que los modelos obtenidos por i), ii) y iii) son el mismo.
 
 anova(model.final1, model.all)
 
 
-# 4) Diagnóstico
+# 4) Diagnostico
 
 plot(model.final1)
 fmodel <- fortify(model.final1)
 head(fmodel)
 
-# Normalidad y Autocorrelación
+# Normalidad y Autocorrelacion
 shapiro.test(resid(model.final1)) # normalidad de los residuos
-qqnorm(Model$.stdresid) # o la función 2 del plot anterior
+qqnorm(Model$.stdresid) # o la funcion 2 del plot anterior
 
 durbinWatsonTest(model.final1) # no correlacion de errores
 # es en este en el que se suponen en un tiempo (INDEX)
+
 plot(residuals(model.final1), pch = 19)
 plot(fmodel$.resid, ylab = "Residuos")
 
+
 # INTRODUCIR HIPOTESIS DE MEDIA ERRORES NULA
+# ----------
 
 
 # Bonferroni
 alpha <- 0.05
-BCV <- qt(1 - alpha / (2 * 30), 26) # el valor crítico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
+BCV <- qt(1 - alpha / (2 * 30), 26) # el valor crÃ­tico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
 BCV
 sum(abs(rstudent(model.final1)) > BCV)
 which.max(abs(rstudent(model.final1)))
 
+
 # Residuos Estandarizados
-install.packages("ggplot2")
-library(ggplot2)
-
-
 X <- fmodel$.fitted
 Y <- fmodel$.stdresid
-plot(X, Y, ylab = "Residuos estandarizados", xlab = "valores ajustados")
+plot(X, Y, ylab = "Residuos Estandarizados", xlab = "Valores Ajustados")
 segments(5, 0, 40, 0)
 # en esa grafico hablar de homocedasticidad (varianza constante)
 sort(abs(rstandard(model.final1)), decreasing = TRUE)[1:3]
@@ -212,8 +218,8 @@ sort(abs(rstandard(model.final1)), decreasing = TRUE)[1:3]
 # mas  formas de verlo(formula del paquete car)(sino ver test White en otro package)
 ncvTest(model.final1) # p valor "grande" no hay evidencias para rechazar que sea cte
 
-# Outliers y High Leverage
 
+# Outliers y High Leverage
 outlierTest(model.final1) # no hay outliers
 
 # Criterio 1: valores leverage (hii) mayores que 2p/n
@@ -244,7 +250,7 @@ sum(dfbetamodel[, 3] > dfbetaCV)
 which(dfbetamodel[, 1] > dfbetaCV)
 which(dfbetamodel[, 3] > dfbetaCV)
 
-# Gráfica con su distancia de Cook
+# Grafica con la distancia de Cook
 influencePlot(model.final1)
 pos_influyentes <- c(6, 7, 8, 12, 15)
 
@@ -285,15 +291,15 @@ coef(regfit.best, which.min(val.errors))
 
 
 
-# validación cruzada de 1
+# Validacion cruzada de 1
 
 n <- nrow(cheese)
-k <- n # número de grupos, como es de elemento a elemento hay n
+k <- n # numero de grupos, como es elemento a elemento hay n
 
 folds <- sample(x = 1:k, size = nrow(cheese), replace = FALSE)
 cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
 for (j in 1:k) {
-  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cojemos datos del train
+  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
   for (i in 1:3) {
     pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
     cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
@@ -306,15 +312,15 @@ coef(best.fit, which.min(mean.cv.errors))
 
 
 
-# validación en 4 grupos, cambiar la linea de k para otro numero
+# Validacion en 4 grupos, cambiar la linea de k para otro numero
 
 n <- nrow(cheese)
-k <- 4 # número de grupos
+k <- 4 # numero de grupos
 
 folds <- sample(x = 1:k, size = nrow(cheese), replace = TRUE)
 cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
 for (j in 1:k) {
-  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cojemos datos del train
+  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
   for (i in 1:3) {
     pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
     cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
@@ -324,7 +330,7 @@ mean.cv.errors <- apply(cv.errors, 2, mean)
 mean.cv.errors
 coef(best.fit, which.min(mean.cv.errors))
 
-# comprobación
+# Comprobacion
 model.cv <- lm(taste ~ H2S + Lactic, data = cheese)
 summary(model.cv)
 plot(lm(taste ~ H2S + Lactic, data = cheese), which = 1)
@@ -333,11 +339,11 @@ residualPlot(model.cv)
 influenceIndexPlot(model.cv)
 
 
-# suponiendo los errores se distribuyen con media 0 y varianza v^2
+# Suponiendo que los errores se distribuyen con media 0 y varianza v^2
 
-# calculo de intervalo de conf de beta1(H2S) y 2(Lactic)
-# [seria beta 2 y 3 si lo interpreto del modelo original]
-# método Bonferroni
+# Calculo de intervalo de confianza de beta1(H2S) y beta2(Lactic)
+
+# Metodo Bonferroni
 model.y <- lm(taste ~ H2S + Lactic, data = cheddar)
 alpha <- 0.10
 summary(model.y)$coef
@@ -353,7 +359,7 @@ bnam <- c("H2S", "Lactic")
 dimnames(BomSimCI) <- list(bnam, conf)
 BomSimCI
 
-# Intervalo de confianza simultáneo por el método de Scheffé
+# Intervalo de confianza simultaneo por el metodo de Scheffe
 Q <- p - 1
 f_teo <- qf(0.9, Q, n - p)
 SchSimCI <- matrix(c(b - sqrt(Q * f_teo) * s.b, b + sqrt(Q * f_teo) * s.b), ncol = 2)
@@ -366,70 +372,65 @@ SchSimCI
 
 
 confidenceEllipse(model.y,
-  level = 0.90, which.coef = c(2, 3),
-  Scheffe = FALSE, main = ""
+                  level = 0.90, which.coef = c(2, 3),
+                  Scheffe = FALSE, main = ""
 )
 title(main = "Elipsoide de confianza Bonferroni")
 abline(v = BomSimCI[1, ])
 abline(h = BomSimCI[2, ])
 
 confidenceEllipse(model.y,
-  level = 0.90, which.coef = c(2, 3),
-  Scheffe = TRUE, main = ""
+                  level = 0.90, which.coef = c(2, 3),
+                  Scheffe = TRUE, main = ""
 )
-title(main = "Elipsoide de confianza Scheffé")
+title(main = "Elipsoide de confianza ScheffÃ©")
 abline(v = SchSimCI[1, ])
 abline(h = SchSimCI[2, ])
 
-#### Estudio de hip�tesis supuestas:
+
+
+# Estudio de hipótesis supuestas:
 
 residuos <- resid(model.y)
 
-# Los errores tienen distribuci�n normal
-
+# Los errores tienen distribución normal y media cero
 shapiro.test(residuos)
 
-# Tiene media 0
-
 t.test(residuos, mu = 0, alternative = "two.sided")
-
 t.test(resid(modelf2.lm), mu = 0, alternative = "two.sided")
+# ambos tienen p-valor 1
 
-# Los dos tienen p-valor 1
-
-# Varianza constante
-
+# Los errores tienen varianza constante
 res.aov <- aov(model.y, data = cheddar)
 summary(res.aov)
 
 res.bcaov <- aov(modelf2.lm, data = cheddar)
 summary(res.aov)
+# con alpha = 0.05 se garantizan las dos.
 
-# con alpha = 0.05 puedes garantizar las dos.
 
-# Los errores no est� correlaciones
+# Los errores no estan correlacionados
 acf(residuos)
 # Tiene que quedar 0 en 1 y el resto por debajo de nivel de signficacion, ocurre
 durbinWatsonTest(model.y)
 durbinWatsonTest(model.final1)
 # Comprobado
 
-#### BoxCox: Estudio de hip�tesis supuestas:
 
-# Los errores tienen distribuci�n normal
+#### BoxCox: Estudio de hipótesis supuestas:
+
+# Los errores tienen distribución normal
 
 # Tiene media 0
 
 # Varianza constante
 
-# Los errores no est� correlaciones
+# Los errores no está correlaciones
 
 
-######### cosas haciendo boxcox y después de hacerlo ...######
+######### cosas haciendo boxcox y despues de hacerlo ...######
 
 # training con boxcox y despues lo comparo
-install.packages("car")
-library(car)
 bc <- boxCox(model.final1, lambda = seq(-2, 2, 1 / 10), plotit = TRUE)
 lambda <- bc$x[which.max(bc$y)]
 Y_bc <- (cheddar$taste^lambda - 1) / lambda
@@ -438,14 +439,14 @@ modelf2.lm <- lm(Y_bc ~ H2S + Lactic, data = cheddar)
 
 influencePlot(modelf2.lm)
 influencePlot(model.final1)
-# antes era pos_influyentes <- c(6,7,8,12,15)
+
 pos_influyentes <- c(1, 6, 7, 15, 28)
 
 cheddar2 <- cheddar
 cheddar2$taste <- (cheddar$taste^lambda - 1) / lambda
 cheddar
 cheddar2
-# las eliminamos y vemos que tal la cosa
+
 obs.out <- c(1, 6, 7, 15, 28)
 cheese2 <- cheddar2[-obs.out, ]
 
@@ -485,7 +486,7 @@ coef(model.exh, which.min(val.errors))
 regfit.best <- regsubsets(taste ~ ., cheddar[-obs.out, 1:4])
 coef(regfit.best, which.min(val.errors))
 
-# para verlo más visual
+# para verlo mÃ¡s visual
 
 val.errors
 val.errors2
@@ -497,12 +498,32 @@ coef(regfit.best, which.min(val.errors2))
 coef(regfit.best, which.min(val.errors))
 
 
-# 6) Conclusión
+# 6) Conclusion
 
-model.final <-
-  summary(model.final) # de aquí sacamos las estimaciones de betahat y sigma
-# podemos usar una gráfica para visualizar el plano "predictor"
+model.final <- model.final1 ############ tomar el mejor modelo de 4
+summary(model.final)
+# En el summary podemos observar tanto los valores de betahat, sus p-valores y sigma
 
-# errores standard
-# p-valores
-# R2 ajustado
+coeff <- summary(model.final)$coeff[,1]
+# La ecuación de nuestro modelo final es y = beta0 + beta1*x_H + beta2*x_L,
+#    donde x_H y x_L denotan los valores observados de H2S y Lactic.
+
+rse <- sqrt(deviance(model.final)/df.residual(model.final))
+pval <- summary(model.final)$coeff[,4]
+
+anova(model.final)
+
+
+# Observamos como se distribuye la variable taste en función de H2S y Lactic
+plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", color=taste) %>% 
+  layout(scene = list(xaxis = list(title = 'H2S (%)'),
+                      yaxis = list(title = 'Lactic (%)'),
+                      zaxis = list(title = 'Taste (0-100)')))
+
+
+# Vemos el plano de regresion del modelo propuesto.
+# En rojo se marcan las observaciones que peor se ajustan al modelo.
+planereg <- scatterplot3d(x=H2S, y=Lactic, z=taste, pch=16, cex.lab=1,
+                       highlight.3d=TRUE, type="h", xlab='H2S (%)',
+                       ylab='Lactic (%)', zlab='Taste (0-100)')
+planereg$plane3d(model.final, lty.box="solid", col='mediumblue')
