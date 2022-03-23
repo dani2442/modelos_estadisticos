@@ -3,12 +3,14 @@ To do list:
 		Ver los comentarios en el texto y escribir lo que diga (las conclusiones que se sacan meter fotos...)
 		
 		Continuar (vamos por outliers/influyentes del punto 4)
+		Corregir todo lo necesario para lo del train y test en todo lo que ya este escrito
 
 	En latex_ presentación: 
 		Todo
 
 	En R:
+		Hacer los puntos 3 4 5 metiendole un train test y distintas seeds
 		Hacer las cosas matricialmente cuando se pueda.
 		Hacer contraste de hipotesis para media de errores =0 (ponerlo junto a test de normalidad)
 		Hacer contrastes sobre el mode.all ejemplo beta_1=0 ( es la de Acetic y tendria que ser cierto)
-		Cosa de boxcox ¿que hacer, como  hacer?
+		Cosa de boxcox ¿que hacer, como  hacer, deberiamos hacer?
