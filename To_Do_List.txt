@@ -1,0 +1,14 @@
+To do list:
+	En latex_documento:
+		Ver los comentarios en el texto y escribir lo que diga (las conclusiones que se sacan meter fotos...)
+		
+		Continuar (vamos por outliers/influyentes del punto 4)
+
+	En latex_ presentación: 
+		Todo
+
+	En R:
+		Hacer las cosas matricialmente cuando se pueda.
+		Hacer contraste de hipotesis para media de errores =0 (ponerlo junto a test de normalidad)
+		Hacer contrastes sobre el mode.all ejemplo beta_1=0 ( es la de Acetic y tendria que ser cierto)
+		Cosa de boxcox ¿que hacer, como  hacer?
