@@ -1,0 +1,682 @@
+---
+title: "Cheddar Faraway"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+### 1. Introducción
+
+En un estudio de queso Cheddar realizado en el Valle de Latrobe (Victoria, Australia), se estudiaron muestras de queso en las que se analizó su composición química y fueron dadas a probar a distintos sujetos para que valoraran su sabor. Los valores asignados a cada queso son el resultado de combinar las distintas valoraciones. 
+
+El DataFrame **cheddar** de la librería **faraway** consiste de 30 muestras de queso Cheddar en las que se ha medido el sabor (*taste*) y las concentraciones de ácido acético (*Acetic*), ácido sulfhídrico (*H2S*) y lactosa (*Lactic*).
+
+
+Tenenemos un conjunto de datos en el que se recogen observaciones de una cata de
+quesos, nuestras variables son:   
+
+
+**· Taste:** una valoración subjetiva de los jueces.   
+
+**· Acetic:** la concentración de ácido acético en un queso de terminado en esca
+la logarítmica  
+
+**· H2S:** la concentración de sulfito de hidrógeno en escala logarítmica.
+
+**· Lactic:** Concentración de ácido láctico
+
+
+```{r}
+library(faraway)
+library(leaps)
+library(MASS)
+library(PASWR)
+library(car)
+library(ggplot2)
+library(GGally)
+library(corrplot)
+library(plotly)
+library(scatterplot3d)
+library(cowplot)
+data(cheddar)
+head(cheddar)
+```
+Comprobamos que no hay entradas vacias
+```{r}
+any(is.na(cheddar))
+```
+
+
+```{r}
+sapply(cheddar, class)
+```
+
+Al ser todas numéricas no hay que hacer encoding a variables binarias
+
+Usamos el número de observaciones para determinar los conjuntos de train y
+test
+
+
+
+
+
+```{r}
+numObs <- dim(cheddar)[1]
+numObs
+```
+Tenemos 30 observaciones, ¿Tenemos alguna en la que falten datos?
+¿Tenemos *outliers*?  
+Esto lo trataremos en la sección 4
+
+
+```{r}
+# Para asegurar que sea reproducible
+
+set.seed(1)
+train <- sample(c(TRUE, FALSE),
+                size = nrow(cheddar),
+                replace = TRUE,
+                prob = c(0.7, 0.3))
+test <- (!train)
+```
+
+Hacemos un pequeño estudio preliminar de nuestras variables:
+
+```{r}
+plot(cheddar)
+```
+
+
+```{r Attach, include=FALSE}
+attach(cheddar[train,])
+```
+
+
+
+```{r}
+
+# Graficas de dispersion entre la variable respuesta "taste" y las variables predictoras.
+layout(matrix(1:3, nrow = 1))
+
+plot(Acetic, taste,
+     main = "Relación entre Taste y Acetic",
+     xlab = "Acetic", ylab = "Taste",
+     pch = 20, frame = FALSE)
+
+
+plot(H2S, taste,
+     main = "Relación entre Taste y H2S",
+     xlab = "H2S", ylab = "Taste",
+     pch = 20, frame = FALSE)
+
+
+plot(Lactic, taste,
+     main = "Relaciónn entre Taste y Lactic",
+     xlab = "Lactic", ylab = "Taste",
+     pch = 19, frame = FALSE)
+
+
+layout(matrix(1:1, nrow = 1))
+```
+
+Podemos observar que la que aperentemente guarda una menor relación lineal  
+con taste es la variable Acetic, esto será comprobado con distintos tests.
+
+
+
+### 2.Estudio y evaluación del modelo completo.  
+
+Simplificamos nuestra notación para las variables, la que intentaremos predecir
+es taste.
+
+Definimos nuestro modelo completo:
+
+#### 2.1 Resolución mediante matrices
+
+
+```{r}
+x <- model.matrix( ~ Acetic + H2S + Lactic, data = cheddar[train,])
+betahat <- solve(crossprod(x, x), crossprod(x, taste))
+betahat <- c(betahat)
+betahat
+```
+
+
+#### 2.1 Resolución usando librerias de R
+
+```{r}
+model.all.lm <- lm(taste ~ ., data = cheddar[train,])
+model.all.lm$coefficients
+```
+Que evidentemente son los mismos.  
+
+Estudiemos preliminarmente si es un modelo lineal adecuado, para ello 
+comprobaremos las hipótesis estándar del modelo lineal de regresión
+
+
+```{r}
+shapiro.test(resid(model.all.lm))
+
+```
+Observamos que estamos en la hipótesis de que el error nuestro modelo se
+distribuye de manera normal. (p-value = 0.8865 > 0.05) 
+
+¿Tienen todas las variables un impacto relevante en el modelo?
+
+```{r}
+summary(model.all.lm)
+```
+
+Obervamos el p-valor de A nos indica que con casi toda seguridad A no tiene 
+impacto real en el modelo ( > 0.94)
+
+
+Los p-valores son lo suficientemente bajos como para rechazar varianza constante  
+
+Una vez hemos concluido que aunque estamos en las hipótesis de regresión lineal
+el modelo completo a pesar de ser el más complejo probablemente da resultados 
+similares a otro más simple.
+
+#### 2.3 Correlaciones y tabla de resultados con el estudio de sus p-valores
+
+```{r}
+corplot <- ggpairs(cheddar[train,])
+corplot 
+```
+
+```{r}
+mat_cor <- cor(cheddar, method = "pearson")
+corrplot(mat_cor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+```
+
+```{r}
+anova(model.all.lm)
+```
+Todos nuestros p-valores son adecuados a un nivel \alpha = 0.05 
+
+#### 2.4 ¿Tiene *outliers* nuestra muestra?
+
+Para comprobarlo basta realizar el siguiente test:
+
+```{r}
+outlierTest(model.all.lm)
+```
+
+Concluimos con un nivel \alpha = 0.05 que no tenemos ningún outlier en nuestra 
+muestra.
+
+Esto se puede comprobar graficamente a través del siguiente gráfico
+
+```{r}
+influenceIndexPlot(model.all.lm)
+```
+Observamos que hay un pequeño grupo de observaciones que aunque no sean *outliers*
+pueden alterar la claidad del modelo.
+
+
+### 3.¿Cuál es el mejor modelo?
+
+#### 3.1. Método Backward  
+
+Partimos del modelo completo estudiado en la sección anterior y aplicamos con
+\alpha = 0.05.
+
+```{r}
+drop1(model.all.lm, test = "F")
+```
+    
+Quitamos Acetic del modelo debido que su p-valor es > 0.05 
+```{r}
+model.update1 <- update(model.all.lm, . ~ . - Acetic)
+drop1(model.update1, test = "F")
+```
+```{r}
+model.update2 <- update(model.all.lm, . ~ . - H2S)
+drop1(model.update2, test = "F")
+```
+
+Todos los p-valores son menores que \alpha = 0.05 por lo tanto hemos concluido
+
+```{r}
+model.backward.lm <- lm(taste~Lactic, data =  cheddar[train,])
+```
+Modelo resultante: **taste ~ Lactic.**
+
+#### 3.2. Método Backward 
+
+
+```{r}
+SCOPE<-(~.+Acetic + H2S + Lactic)
+model.inicial <- lm(taste~1,data= cheddar[train,])
+add1(model.inicial,scope=SCOPE,test="F")
+
+```
+
+Actualizamos añadiendo Lactic
+```{r}
+model.updatei1 <- update(model.inicial, .~. + Lactic)
+add1(model.updatei1,scope=SCOPE,test="F")
+```
+
+
+Con nivel de significación \alpha = 0.05 este sería nuestro modelo final.
+
+```{r}
+model.forward.lm<-lm(taste~Lactic, data= cheddar[train,])
+```
+Modelo resultante: **taste ~ Lactic.**
+
+#### Observación 
+
+A este modelo, **taste ~ Lactic** le vamos a dar un nombre, posteriormente
+estudiaremos los problemas que presenta.
+
+```{r}
+model.final1 <- lm(taste ~ Lactic, data = cheddar[train,])
+```
+
+
+#### 3.3 Construcción por criterios
+
+En esta subsección trataremos de encontrar un candidato a mejor modelo,
+construyendo nuestros modelos usando distintos enfoques.
+
+
+##### 3.3.1 R2 ajustado
+```{r}
+models <- regsubsets(taste ~ ., data = cheddar[train,])
+summary(models)
+MR2adj <- summary(models)$adjr2
+MR2adj
+which.max(MR2adj)
+summary(models)$which[which.max(MR2adj), ]
+
+```
+Modelo resultante: **taste ~ H2S + Lactic.**
+
+##### 3.3.2 Cp de Mallows
+```{r}
+MCp <- summary(models)$cp
+MCp
+which.min(MCp)
+summary(models)$which[which.min(MCp), ]
+```
+Modelo resultante: **taste ~ H2S + Lactic.**
+
+
+
+##### 3.3.3 Criterio de Informacion de Bayes (BIC)
+```{r}
+
+MBIC <- summary(models)$bic
+MBIC
+which.min(MBIC)
+summary(models)$which[which.min(MBIC), ]
+
+```
+Modelo resultante: **taste ~ H2S + Lactic.**
+
+##### 3.3.4 Criterio de Informacion de Akaike (AIC)
+```{r}
+stepAIC(model.all.lm, scope = SCOPE, k = 2)
+```
+Modelo resultante: **taste ~ H2S + Lactic.  **
+
+
+
+Nótese que los modelos obtenidos por metodos de criterios coinciden.
+```{r}
+model.crit <- lm(taste ~ H2S + Lactic, data=cheddar[train,])
+anova(model.crit, model.all.lm)
+
+```
+Con un valor de 0.3363 no podemos decir que los modelos sean signficativamente
+diferentes con ningún nivel \alpha habitual, interpretamos que el segundo modelo
+aunque más simple, no es significativamente peor.
+#### Observación 
+
+A este , **taste ~ H2S + Lactic** le vamos a dar un nombre, en la siguiente 
+sección lo estudiaremos con detalle.
+
+```{r}
+model.final2 <- lm(taste ~ H2S + Lactic, data = cheddar[train,])
+```
+
+### 4. Diagnóstico
+
+En esta sección estudiaremos si nuestros *modelos* cumplen las condiciones
+necesarias de un modelo de regresión lineal.  
+
+Nuestro enfoque consistirá en un analisis gráfico, acompañado de tests
+estadísticos en los casos en los que se aprecie una discrepancia notable.
+
+
+```{r include=FALSE}
+attach(cheddar)
+```
+
+#### 4.1 ¿Son nuestros *modelos*, modelos de regresión lineal?: Comprobación de hipótesis.
+
+En la sección 3 se toma un enfoque *naïve* a la hora de construir los modelos,
+ya que no hemos estudiado si hay observaciones influyentes, podríamos tener una
+muestra que no es la adecuada para el estudio de nuestros datos.  
+
+Un modelo de regresión lineal debe satisfacer las siguientes hipótesis con nivel 
+de siginificación \alpha adecuado:
+
+1. Los errores \(\epsilon_{i}\) tienen distribución normal.  
+2. Los errores \(\epsilon_{i}\) tienen media cero.  
+3. Los errores \(\epsilon_{i}\) tienen varianza constante.  
+4. Los errores \(\epsilon_{i}\) no están correlacionados.  
+
+
+
+##### 4.1.1 Estudios preliminares
+
+##### Model.final1
+
+```{r}
+plot(model.final1)
+residuos <- resid(model.final1)
+```
+Observamos que este modelo tiene algunas características poco
+lineales, ya que en el primer plot hay una aparente ausencia de relación linea,
+lo comprobamos estadisiticamente.  
+
+##### Model.final2
+
+```{r}
+plot(model.final2)
+residuos2 <- resid(model.final2)
+```
+Observamos que este modelo tiene algunas características poco
+lineales, ya que en el segundo plot nuestros datos llegan a dispersarse
+considerablemente,lo comprobamos estadisiticamente.
+
+##### 4.1.2. Comprobación de hipótesis
+
+A fin de exponer con una mayor claridad los resultados y ahorrar espacio,
+recogemos los resultados de los tests en una tabla en la que observamos si se
+verifican las hipotesis del modelo de regrsión lineal.
+```{r}
+library(knitr)
+```
+
+
+```{r}
+res.aov <- aov(model.final1)
+res.aov2 <- aov(model.final2)
+shap1 <- shapiro.test(residuos)$p.value
+shap2 <- shapiro.test(residuos2)$p.value
+
+t1 <- t.test(residuos, mu = 0, alternative = "two.sided")$p.value
+t2 <- t.test(residuos2, mu = 0, alternative = "two.sided")$p.value
+
+aov1L <- summary(res.aov)[[1]][["Pr(>F)"]][1]
+aov2L <- summary(res.aov2)[[1]][["Pr(>F)"]][1]
+aov2H <-  summary(res.aov2)[[1]][["Pr(>F)"]][2]
+
+dw1 <- durbinWatsonTest(model.final1)[[3]]#CORREGIR PROBLEMILLA; NO SON ESTOS LOS P
+dw2 <- durbinWatsonTest(model.final2)[[3]]
+
+
+df_hip <- data.frame("Distribución_normal" = c(shap1,shap2, 0.05,"Shapiro-Wilk"),
+                     "Media_0" = c(t1,t2, 0.05,"t-Test"),
+                     "Varianza_no_constante_H2S" = c("No participa en modelo",aov2H,0.05,"ANOVA"),
+                     "Varianza_no_constante_L" = c(aov1L,aov2L,0.05,"ANOVA"),
+                     "No_Autocorrelación" = c(dw1,dw2,0.05, "Durvin-Watson"))
+rownames(df_hip) <- c("model.final1","model.final2","p-valor","Test usado")
+```
+
+```{r}
+df_hip
+```
+
+A pesar de nuestras suposiciones iniciales, los modelos satisfacen todas las 
+hipótesis de un modelo de regresión lineal.  
+Es interesante observar que los residuos del segundo modelo se ajustán mejor 
+a una normal y la variación de la autocorrelación al añadir un segundo predictor.  
+
+#### 4.2 *Outliers* y observaciones con leverage alto.  
+
+
+Anteriormente hemos tratado que nuestra muestra no contiene *outliers*.
+¿Pasa lo mismo con las observaciones influyentes?  
+
+Realizamos un estudio de estos últimos a través de distintos criterios:
+#####4.2.1 Estuudio de model.final1
+
+##### Criterio 1: valores leverage (hii) mayores que 2p/n
+
+```{r}
+X <- model.matrix(~ H2S + Lactic, data = cheddar)
+H <- X %*% solve(t(X) %*% X) %*% t(X)
+hii <- diag(H)
+
+hCV <- 2 * 3 / 30
+sum(hii > hCV)
+which(hii > hCV) # 6
+
+```
+
+
+##### Criterio 2: valores |DFFITS| son mayores que 2*sqrt(p/n)
+
+```{r}
+dffitsCV <- 2 * sqrt(3 / 30)
+dffitsmodel <- dffits(model.final1)
+
+sum(dffitsmodel > dffitsCV)
+
+```
+
+
+#####  Criterio 3: valores |DFBETAS| mayores que 2/sqrt(n)
+
+```{r}
+dfbetaCV <- 2 / sqrt(30)
+dfbetamodel <- dfbeta(model.final1)
+dfbetamodel
+
+sum(dfbetamodel[, 1] > dfbetaCV)
+sum(dfbetamodel[, 2] > dfbetaCV)
+#sum(dfbetamodel[, 3] > dfbetaCV) # Yo diria que esta se quita para evitar error
+
+which(dfbetamodel[, 1] > dfbetaCV)
+#which(dfbetamodel[, 3] > dfbetaCV) # Yo diria que esta se quita para evitar error
+
+```
+
+##### Conclusión observaciones influyentes
+
+Una vez hemos localizado estas observaciones, en este caso las hay, las
+retiramos de la muestra con el fin de tener una muestra adecuada para trabjar
+
+```{r}
+obs.out <- c(6, 7, 8, 12, 15)
+cheese <- cheddar[-obs.out, ]
+```
+
+Ahora ya estamos en condiciones de realizar un estudio adecuado de las
+condiciones de regresión lineal.
+
+#### 4.2 Estudio de modelos en la muestra revisada.
+
+
+```{r}
+model.exh <- regsubsets(taste ~ ., data = cheddar[train, ], method = "exhaustive")
+summary(model.exh)
+```
+Definimos...
+```{r}
+predict.regsubsets <- function(object, newdata, id, ...) {
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form, newdata)
+  coefi <- coef(object, id = id)
+  xvar <- names(coefi)
+  mat[, xvar] %*% coefi
+}
+```
+
+Calculamos...
+
+```{r}
+val.errors <- rep(NA, 3)
+Y <- cheddar[test, ]$taste
+for (i in 1:3) {
+  Yhat <- predict.regsubsets(model.exh, newdata = cheddar[test, ], id = i)
+  val.errors[i] <- mean((Y - Yhat)^2)
+}
+```
+
+```{r}
+val.errors
+```
+¿Qué deducimos de aquí?
+
+```{r}
+coef(model.exh, which.min(val.errors))
+```
+Lactic es sin duda nuestro predictor mas influyente.
+
+Ahora minimizamos el error.
+
+```{r}
+regfit.best <- regsubsets(taste ~ ., cheddar[-obs.out, ])
+coef(regfit.best, which.min(val.errors))
+```
+Ligero cambio
+
+#### 4.2 Test de modelos
+
+##### 4.2.1 Validacion cruzada de 1
+
+```{r}
+n <- nrow(cheese)
+k <- n # numero de grupos, como es elemento a elemento hay n
+
+folds <- sample(x = 1:k, size = nrow(cheese), replace = FALSE)
+cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
+for (j in 1:k) {
+  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
+  for (i in 1:3) {
+    pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
+    cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
+  }
+}
+mean.cv.errors <- apply(cv.errors, 2, mean)
+```
+
+Ahora recogemos nuestros términos
+
+```{r}
+mean.cv.errors
+```
+
+```{r}
+coef(best.fit, which.min(mean.cv.errors))
+
+```
+
+
+
+
+##### 4.2.2 Validacion en 4 grupos, cambiar la linea de k para otro numero
+```{r}
+
+n <- nrow(cheese)
+k <- 4 # numero de grupos
+
+folds <- sample(x = 1:k, size = nrow(cheese), replace = TRUE)
+cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
+for (j in 1:k) {
+  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
+  for (i in 1:3) {
+    pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
+    cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
+  }
+}
+mean.cv.errors <- apply(cv.errors, 2, mean)
+
+
+```
+Comprobamos los términos
+```{r}
+mean.cv.errors
+```
+
+```{r}
+coef(best.fit, which.min(mean.cv.errors))
+```
+
+##### 4.2.2 Comprobaciones finales
+
+```{r}
+model.cv <- lm(taste ~ H2S + Lactic, data = cheese)
+summary(model.cv)
+```
+
+```{r}
+plot(lm(taste ~ H2S + Lactic, data = cheese), which = 1)
+```
+Se observa que practicamente se ajusta por completo a un modelo lineal.
+
+```{r}
+plot(lm(taste ~ H2S + Lactic, data = cheese), which = 2)
+
+```
+Los residuos se comportan como una distribución normal de manera bastante clara
+```{r}
+residualPlot(model.cv)
+```
+### 5. Errores
+hay que moverlos aquí
+
+### 6.Conclusión
+
+Después de las comparaciones realizadas con respecto a nuestras comprobaciones
+cruzadas concluimos que el mejor modelo es **taste ~ Lactic**.
+
+```{r}
+model.final <- model.final1
+```
+ Es un modelo especialmente simple, sus coeficientes son:
+ 
+```{r}
+coeff <- summary(model.final)$coeff[,1]
+```
+
+Y algo más de información, aunque ya la hemos estudiado antes la aporta
+
+```{r}
+sumary(model.final)
+```
+
+Una consecuencia interesante de tener solo 3 predictores es que podemos interpretar
+nuestro modelo de regresión como un plano en el espacio.  
+
+Primero veamos como se distribuye la variable taste en función de H2S y Lacti
+ 
+```{r}
+plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", color=taste) %>% 
+  layout(scene = list(xaxis = list(title = 'H2S (%)'),
+                      yaxis = list(title = 'Lactic (%)'),
+                      zaxis = list(title = 'Taste (0-100)')))
+
+
+
+```
+ 
+ Y ahora podemos añadir nuestro "plano" de regresión. Marcamos en rojo las
+ observaciones que peor se ajustan al modelo.
+```{r}
+# planereg <- scatterplot3d(x=H2S, y=Lactic, z=taste, pch=16, cex.lab=1,
+#                           highlight.3d=TRUE, type="h", xlab='H2S (%)',
+#                         ylab='Lactic (%)', zlab='Taste (0-100)')
+# plot.new(planereg$plane3d(model.final, lty.box="solid", col='mediumblue'))
+# Me da error
+
+```
+ 
