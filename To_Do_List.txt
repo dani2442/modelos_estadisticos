@@ -9,5 +9,8 @@ To do list:
 		Todo
 
 	En R:
-		Hacer los puntos 3 4 5 metiendole un train test y distintas seeds
-		Hacer las cosas matricialmente cuando se pueda.
+		Hacer apartados 3,4 con 3 semillas
+		5 - Escoger 5 semillas distintas de las de antes
+		    Comprobar los supuestos del modelo de regresión lineal en cada seed y cada modelo.
+		    Observaciones influyentes para crear test set de forma manual en cada caso.
+		    Predecir los resultados con estos modelos y medir el error.
