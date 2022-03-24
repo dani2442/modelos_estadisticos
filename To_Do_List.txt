@@ -11,6 +11,3 @@ To do list:
 	En R:
 		Hacer los puntos 3 4 5 metiendole un train test y distintas seeds
 		Hacer las cosas matricialmente cuando se pueda.
-		[HECHO]Hacer contraste de hipotesis para media de errores =0 (ponerlo junto a test de normalidad)
-		Hacer contrastes sobre el mode.all ejemplo beta_1=0 ( es la de Acetic y tendria que ser cierto)
-		Cosa de boxcox ¿que hacer, como  hacer, deberiamos hacer?
