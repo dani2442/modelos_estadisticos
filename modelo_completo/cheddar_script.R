@@ -8,6 +8,7 @@ install.packages("GGally")
 install.packages("corrplot")
 install.packages("scatterplot3d")
 install.packages("lmtest")
+install.packages("plotly")
 
 library(faraway)
 library(leaps)
@@ -26,6 +27,7 @@ library(lmtest)
 # 1) Introduccion
 
 data(cheddar)
+attach(cheddar)
 
 # Variable Respuesta: taste
 # Variables Predictoras: Acetic, H2S, Lactic
@@ -64,13 +66,13 @@ layout(matrix(1:3, nrow = 1))
 plot(Acetic, taste,
      main = "RelaciÃ³n entre Taste y Acetic",
      xlab = "Acetic", ylab = "Taste",
-     pch = 20, frame = FALSE)
+     pch = 19, frame = FALSE)
 
 
 plot(H2S, taste,
      main = "RelaciÃ³n entre Taste y H2S",
      xlab = "H2S", ylab = "Taste",
-     pch = 20, frame = FALSE)
+     pch = 19, frame = FALSE)
 
 
 plot(Lactic, taste,
@@ -84,8 +86,6 @@ layout(matrix(1:1, nrow = 1))
 
 
 # 2) Estudio y evaluacion del modelo completo
-attach(cheddar)
-
 x <- model.matrix( ~ Acetic + H2S + Lactic, data = cheddar)
 betahat <- solve(crossprod(x, x), crossprod(x, taste))
 betahat <- c(betahat)
@@ -104,6 +104,20 @@ mat_cor <- cor(cheddar, method = "pearson")
 corrplot(mat_cor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 
 anova(model.all)
+
+# Intervalos de confianza de las betas del modelo completo
+confint(model.all)
+# Observamos que 0 esta en el intervalo de confianza de beta_0 y beta_Acetic, planteamos dos tests
+#    con hipótesis nula beta_i = 0 y hipotesis alternativa beta_i != 0.
+
+# Comenzamos con beta_Acetic pues el valor estimado es más cercano a 0 que el de beta_0
+modnoAcetic <- lm(taste ~ H2S + Lactic, data=cheddar)
+anova(modnoAcetic,model.all) # no solo el p-valor > 0.05 sino que de hecho p-valor ~ 1, aceptamos la hipotesis nula.
+
+modnoInterceptor <- lm(taste ~ H2S + Lactic + 0, data=cheddar) # modelo reducido sin interceptor
+anova(modnoInterceptor,model.all) # el p-valor es menor que 0.05, luego no es suficiente para rechazar la hipotesis nula
+
+# De aqui deducimos que la variable Acetic no sera muy relevante para el estudio de los distintos modelos que estudiaremos.
 
 
 # outlierTest(model.all) # comprobamos si hay outliers (no)
