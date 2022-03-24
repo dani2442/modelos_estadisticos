@@ -166,14 +166,14 @@ test.1 <- (!train.1)
 sum(test.1)
 model.all1 <- lm(taste ~ ., data = cheddar[train.1,])
 
-set.seed(838) 
+set.seed(1100) 
 train.2 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
 test.2 <- (!train.2)
 sum(test.2)
 sum(test.1==TRUE & test.2==TRUE)
 model.all2 <- lm(taste ~ ., data = cheddar[train.2,])
 
-set.seed(1100) 
+set.seed(1) 
 train.3 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
 test.3 <- (!train.3)
 sum(test.3)
@@ -181,15 +181,6 @@ sum(test.1==TRUE & test.3==TRUE)
 sum(test.2==TRUE & test.3==TRUE)
 model.all3 <- lm(taste ~ ., data = cheddar[train.3,])
 
-set.seed(1) 
-train.4 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
-test.4 <- (!train.4)
-sum(test.4)
-sum(test.1==TRUE & test.4==TRUE)
-sum(test.2==TRUE & test.4==TRUE)
-sum(test.3==TRUE & test.4==TRUE)
-model.all4 <- lm(taste ~ ., data = cheddar[train.4,])
-test.4
 
 
 
@@ -201,13 +192,9 @@ drop1(model.all1, test = "F")
 
 model.updateB1 <- update(model.all1, . ~ . - Acetic)
 drop1(model.updateB1, test = "F")
-# # quitamos H2S del modelo por ser la unica variable con p-valor > 0.05
-# 
-# model.updateB2 <- update(model.updateB1, . ~ . - H2S)
-# drop1(model.updateB2, test = "F")
-# # termina el proceso pues el p-valor de Lactic supera a alpha
+# termina el proceso pues el p-valor de Lactic y H2S no llega a alpha
 
-model.1 <- lm(taste ~ H2S+Lactic, data = cheddar[train,])
+model.1 <- lm(taste ~ H2S+Lactic, data = cheddar[train.1,])
 summary(model.1)
 model.1 <- mixlm::backward(model.all1, alpha=0.05)
 summary(model.1)#H2S LACTIC
@@ -216,35 +203,37 @@ model.2 <- mixlm::backward(model.all2, alpha=0.05)
 summary(model.2)#H2S LACTIC
 
 model.3 <- mixlm::backward(model.all3, alpha=0.05)
-summary(model.3)#H2S LACTIC
+summary(model.3)#LACTIC
 
-model.4 <- mixlm::backward(model.all4, alpha=0.05)
-summary(model.4)# LACTIC
 
 # ii) FORWARD (alpha=0.05)
 
 SCOPE <- (~ . + Acetic + H2S + Lactic)
-model.inicial <- lm(taste ~ 1, data = cheddar[train,]) # solo el termino independiente
+model.inicial <- lm(taste ~ 1, data = cheddar[train.1,]) # solo el termino independiente
 
 add1(model.inicial, scope = SCOPE, test = "F")
-# Añadimos Lactic por ser la variable predictora con menor p-valor
-model.updateF1 <- update(model.inicial, . ~ . + Lactic)
+# Añadimos H2S por ser la variable predictora con menor p-valor
+model.updateF1 <- update(model.inicial, . ~ . + H2S)
 
 add1(model.updateF1, scope = SCOPE, test = "F")
+# Añadimos Lactic por ser la variable predictora con menor p-valor
+model.updateF1 <- update(model.updateF1, . ~ . + Lactic)
+
+add1(model.updateF1, scope = SCOPE, test = "F")
+
 # no añadimos ninguna variable pues sus p-valores superan la barrera de alpha
 
-model.1a <- lm(taste ~ Lactic, data = cheddar[train,])
+model.1a <- lm(taste ~ H2S+Lactic, data = cheddar[train.1,])
 summary(model.1a)
 # Nótese que los modelos obtenidos por metodos de pasos coinciden
 
 model.1a <- mixlm::forward(model.all1, alpha=0.05)
-
+summary(model.1a)#H2S LACTIC
 model.2a <- mixlm::forward(model.all2, alpha=0.05)
 summary(model.2a)#H2S LACTIC
 model.3a <- mixlm::forward(model.all3, alpha=0.05)
-summary(model.3a)#H2S LACTIC
-model.4a <- mixlm::forward(model.all4, alpha=0.05)
-summary(model.4a)# LACTIC
+summary(model.3a)#LACTIC
+
 
 # iii) CRITERIOS
 
@@ -252,19 +241,16 @@ summary(model.4a)# LACTIC
 models1 <- regsubsets(taste ~ ., data = cheddar[train.1,])
 models2 <- regsubsets(taste ~ ., data = cheddar[train.2,])
 models3 <- regsubsets(taste ~ ., data = cheddar[train.3,])
-models4 <- regsubsets(taste ~ ., data = cheddar[train.4,])
 
-summary(models1)#1 2 y 3 son asi
-summary(models4)# este por el contrario tiene a Lactic como 1
+summary(models1)#1 y 2 son asi
+summary(models3)# este por el contrario tiene a Lactic como 1
 MR2adj1 <- summary(models1)$adjr2
 MR2adj2 <- summary(models2)$adjr2
 MR2adj3 <- summary(models3)$adjr2
-MR2adj4 <- summary(models4)$adjr2
 
 summary(models1)$which[which.max(MR2adj1), ]
 summary(models2)$which[which.max(MR2adj2), ]
-summary(models3)$which[which.max(MR2adj3), ]
-summary(models4)$which[which.max(MR2adj4), ]
+summary(models3)$which[which.max(MR2adj3), ]#nuevo
 
 
 
@@ -272,49 +258,43 @@ summary(models4)$which[which.max(MR2adj4), ]
 MCp1 <- summary(models1)$cp
 MCp2 <- summary(models2)$cp
 MCp3 <- summary(models3)$cp
-MCp4 <- summary(models4)$cp
 
 which.min(MCp1)
 summary(models1)$which[which.min(MCp1), ]
 summary(models2)$which[which.min(MCp2), ]
 summary(models3)$which[which.min(MCp3), ]
-summary(models4)$which[which.min(MCp4), ]
 
 
 # Criterio de Informacion de Bayes (BIC)
 MBIC1 <- summary(models1)$bic
 MBIC2 <- summary(models2)$bic
 MBIC3 <- summary(models3)$bic
-MBIC4 <- summary(models4)$bic
 
-which.min(MBIC)
+which.min(MBIC1)
 summary(models1)$which[which.min(MBIC1), ]
 summary(models2)$which[which.min(MBIC2), ]
 summary(models3)$which[which.min(MBIC3), ]
-summary(models4)$which[which.min(MBIC4), ]
 
 # Criterio de Informacion de Akaike (AIC)
 stepAIC(model.all1, scope = SCOPE, k = 2)
 stepAIC(model.all2, scope = SCOPE, k = 2)
 stepAIC(model.all3, scope = SCOPE, k = 2)
-stepAIC(model.all4, scope = SCOPE, k = 2)
 
 # Notese que en los train 1 2 y 3 solo sale el modelo H2S+Lactic 
 # Pero en train4 sale ese y tambien el Lactic 
-model.4crit <- lm(taste ~ H2S + Lactic, data=cheddar[train,])
+model.3crit <- lm(taste ~ H2S + Lactic, data=cheddar[train.3,])
 model.1
 model.2
+model.3crit
 model.3
-model.4crit
-model.4
+
 
 
 anova(model.1,model.all1)
 anova(model.2,model.all2)
 anova(model.3,model.all3)
-anova(model.4,model.all4)
-anova(model.4crit,model.all4)
-# anova(model.4,model.4crit)
+anova(model.3crit,model.all3)
+# anova(model.3,model.3crit)
 
 
 
@@ -326,13 +306,32 @@ attach(cheddar)
 
 
 # Linealidad
-
-plot(Lactic, taste,
-     main = "RelaciÃ³n entre Taste y Lactic",
+plot(cheddar[train.1,]$H2S, cheddar[train.1,]$taste,
+     main = "Relacion entre Taste y H2S",
+     xlab = "H2S", ylab = "Taste",
+     pch = 19, frame = FALSE) 
+plot(cheddar[train.1,]$Lactic, cheddar[train.1,]$taste,
+     main = "Relacion entre Taste y Lactic",
+     xlab = "Lactic", ylab = "Taste",
+     pch = 19, frame = FALSE) 
+plot(cheddar[train.2,]$H2S, cheddar[train.2,]$taste,
+     main = "Relacion entre Taste y H2S",
+     xlab = "H2S", ylab = "Taste",
+     pch = 19, frame = FALSE) 
+plot(cheddar[train.2,]$Lactic, cheddar[train.2,]$taste,
+     main = "Relacion entre Taste y Lactic",
+     xlab = "Lactic", ylab = "Taste",
+     pch = 19, frame = FALSE) 
+plot(cheddar[train.3,]$Lactic, cheddar[train.3,]$taste,
+     main = "Relacion entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
      pch = 19, frame = FALSE) 
 
-resettest(model.step, power=2:3, type="regressor", data=cheddar) # p-valor > 0.05 luego aceptamos hipótesis de linealidad
+
+resettest(model.1, power=2:3, type="regressor", data=cheddar[train.1,]) # p-valor > 0.05 luego aceptamos hipótesis de linealidad
+resettest(model.2, power=2:3, type="regressor", data=cheddar[train.2,]) # p-valor > 0.05 luego aceptamos hipótesis de linealidad
+resettest(model.3, power=2:3, type="regressor", data=cheddar[train.3,]) # p-valor > 0.05 luego aceptamos hipótesis de linealidad
+resettest(model.3crit, power=2:3, type="regressor", data=cheddar[train.3,]) # p-valor > 0.05 luego aceptamos hipótesis de linealidad
 
 # Normalidad y Autocorrelacion
 
@@ -348,13 +347,9 @@ shapiro.test(resid(model.3))#bien
 qqnorm(resid(model.3))
 qqline(resid(model.3))
 
-shapiro.test(resid(model.4))#bien
-qqnorm(resid(model.4))
-qqline(resid(model.4))
-
-shapiro.test(resid(model.4crit))#bien
-qqnorm(resid(model.4crit))
-qqline(resid(model.4crit))
+shapiro.test(resid(model.3crit))#bien
+qqnorm(resid(model.3crit))
+qqline(resid(model.3crit))
 
 # qqnorm(resid(model.step)) 
 # qqline(resid(model.step))
@@ -372,19 +367,15 @@ plot(residuals(model.2), pch = 19)
 durbinWatsonTest(model.3) #bien
 plot(residuals(model.3), pch = 19)
 
-durbinWatsonTest(model.4) #bien
-plot(residuals(model.4), pch = 19)
-
-durbinWatsonTest(model.4crit) #bien
-plot(residuals(model.4crit), pch = 19)
+durbinWatsonTest(model.3crit) #bien
+plot(residuals(model.3crit), pch = 19)
 
 
 # Homocedasticidad
 fmodel1 <- fortify(model.1)
 fmodel2 <- fortify(model.2)
 fmodel3 <- fortify(model.3)
-fmodel4 <- fortify(model.4)
-fmodel4crit <- fortify(model.4crit)
+fmodel3crit <- fortify(model.3crit)
 
 X1 <- fmodel1$.fitted
 Y1 <- fmodel1$.stdresid
@@ -395,23 +386,18 @@ Y2 <- fmodel2$.stdresid
 X3 <- fmodel3$.fitted
 Y3 <- fmodel3$.stdresid
 
-X4 <- fmodel4$.fitted
-Y4 <- fmodel4$.stdresid
-
-X4crit <- fmodel4crit$.fitted
-Y4crit <- fmodel4crit$.stdresid
+X3crit <- fmodel3crit$.fitted
+Y3crit <- fmodel3crit$.stdresid
 
 plot(X1, Y1, ylab = "Residuos estandarizados", xlab = "valores ajustados")
 plot(X2, Y2, ylab = "Residuos estandarizados", xlab = "valores ajustados")#casi casi hay patron
 plot(X3, Y3, ylab = "Residuos estandarizados", xlab = "valores ajustados")
-plot(X4, Y4, ylab = "Residuos estandarizados", xlab = "valores ajustados")
-plot(X4crit, Y4crit, ylab = "Residuos estandarizados", xlab = "valores ajustados")
+plot(X3crit, Y3crit, ylab = "Residuos estandarizados", xlab = "valores ajustados")
 
 ncvTest(model.1) # como el p-valor > 0.05 no hay evidencias para rechazar que la varianza sea constante
-ncvTest(model.2)#casi casi
+ncvTest(model.2)
 ncvTest(model.3)
-ncvTest(model.4)
-ncvTest(model.4crit)
+ncvTest(model.3crit)
 
 # Los residuos se distribuyen de forma homogénea a lo largo de una banda horizontal, luego se verifica la hipótesis
 
@@ -467,29 +453,23 @@ p2 <-ncol(summary(model.2)$coef)
 n3<-nrow(cheddar[train.3,])
 p3 <-ncol(summary(model.3)$coef)
 
-n4<-nrow(cheddar[train.4,])
-p4 <-ncol(summary(model.4)$coef)
-
-n4crit<-nrow(cheddar[train.4,])
-p4crit <-ncol(summary(model.4crit)$coef)
-# el valor critico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
+n3crit<-nrow(cheddar[train.3,])
+p3crit <-ncol(summary(model.3crit)$coef)
+# el valor critico de Bonferroni t_{1-alpha/2n;n-p-1}
 BCV1 <- qt(1 - alpha / (2 * n1), n1-p1-1) 
 BCV2 <- qt(1 - alpha / (2 * n2), n2-p2-1) 
 BCV3 <- qt(1 - alpha / (2 * n3), n3-p3-1) 
-BCV4 <- qt(1 - alpha / (2 * n4), n4-p4-1) 
-BCV4crit <- qt(1 - alpha / (2 * n4crit), n4crit-p4crit-1) 
+BCV3crit <- qt(1 - alpha / (2 * n3crit), n3crit-p3crit-1) 
 
 sum(abs(rstudent(model.1)) > BCV1)
 sum(abs(rstudent(model.2)) > BCV2)
 sum(abs(rstudent(model.3)) > BCV3)
-sum(abs(rstudent(model.4)) > BCV4)
-sum(abs(rstudent(model.4crit)) > BCV4crit)
+sum(abs(rstudent(model.3crit)) > BCV3crit)
 
 outlierTest(model.1)
 outlierTest(model.2) # no hay en ninguno de los dos modelos planteados
 outlierTest(model.3)
-outlierTest(model.4)
-outlierTest(model.4crit)#NA ?
+outlierTest(model.3crit)#NA ?
 
 
 
@@ -498,35 +478,29 @@ outlierTest(model.4crit)#NA ?
 
 X1 <- model.matrix(~ H2S+Lactic, data = cheddar[train.1,])
 X2 <- model.matrix(~ H2S+Lactic, data = cheddar[train.2,])
-X3 <- model.matrix(~ H2S+Lactic, data = cheddar[train.3,])
-X4 <- model.matrix(~ Lactic, data = cheddar[train.4,])
-X4crit <- model.matrix(~ H2S+Lactic, data = cheddar[train.4,])
+X3 <- model.matrix(~ Lactic, data = cheddar[train.3,])
+X3crit <- model.matrix(~ H2S+Lactic, data = cheddar[train.3,])
 
 H1 <- X1 %*% solve(t(X1) %*% X1) %*% t(X1)
 H2 <- X2 %*% solve(t(X2) %*% X2) %*% t(X2)
 H3 <- X3 %*% solve(t(X3) %*% X3) %*% t(X3)
-H4 <- X4 %*% solve(t(X4) %*% X4) %*% t(X4)
-H4crit <- X4crit %*% solve(t(X4crit) %*% X4crit) %*% t(X4crit)
+H3crit <- X3crit %*% solve(t(X3crit) %*% X3crit) %*% t(X3crit)
 
 hii1 <- diag(H1)
 hii2 <- diag(H2)
 hii3 <- diag(H3)
-hii4 <- diag(H4)
-hii4crit <- diag(H4crit)
+hii3crit <- diag(H3crit)
 
 hCV1 <- 2 * p1 / n1
 hCV2 <- 2 * p2 / n2
 hCV3 <- 2 * p3 / n3
-hCV4 <- 2 * p4 / n4
-hCV4crit <- 2 * p4crit / n4crit
+hCV3crit <- 2 * p3crit / n3crit
 
 sum(hii1 > hCV1)
 sum(hii2 > hCV2)
-which(hii2>hCV2)#6
 sum(hii3 > hCV3)
-sum(hii4 > hCV4)
-sum(hii4crit > hCV4crit)
-which(hii4crit>hCV4crit)#23
+sum(hii3crit > hCV3crit)
+which(hii3crit>hCV3crit)#23
 
 
 
@@ -536,22 +510,19 @@ which(hii4crit>hCV4crit)#23
 dffitsCV1 <- 2 * sqrt(p1 / n1)
 dffitsCV2 <- 2 * sqrt(p2 / n2)
 dffitsCV3 <- 2 * sqrt(p3 / n3)
-dffitsCV4 <- 2 * sqrt(p4 / n4)
-dffitsCV4crit <- 2 * sqrt(p4crit / n4crit)
+dffitsCV3crit <- 2 * sqrt(p3crit / n3crit)
 
 dffitsmodel1 <- dffits(model.1)
 dffitsmodel2 <- dffits(model.2)
 dffitsmodel3 <- dffits(model.3)
-dffitsmodel4 <- dffits(model.4)
-dffitsmodel4crit <- dffits(model.4crit)
+dffitsmodel3crit <- dffits(model.3crit)
 
 sum(dffitsmodel1 > dffitsCV1)
 sum(dffitsmodel2 > dffitsCV2)
 sum(dffitsmodel3 > dffitsCV3)
-sum(dffitsmodel4 > dffitsCV4)
-which(dffitsmodel4 > dffitsCV4)#1
-sum(dffitsmodel4crit > dffitsCV4crit)
-which(dffitsmodel4crit > dffitsCV4crit)#1, 12
+which(dffitsmodel3 > dffitsCV3)#1
+sum(dffitsmodel3crit > dffitsCV3crit)
+which(dffitsmodel3crit > dffitsCV3crit)#1, 12
 
 
 
@@ -559,14 +530,12 @@ which(dffitsmodel4crit > dffitsCV4crit)#1, 12
 dfbetaCV1 <- 2 / sqrt(n1)
 dfbetaCV2 <- 2 / sqrt(n2)
 dfbetaCV3 <- 2 / sqrt(n3)
-dfbetaCV4 <- 2 / sqrt(n4)
-dfbetaCV4crit <- 2 / sqrt(n4crit)
+dfbetaCV3crit <- 2 / sqrt(n3crit)
 
 dfbetamodel1 <- dfbeta(model.1)
 dfbetamodel2 <- dfbeta(model.2)
 dfbetamodel3 <- dfbeta(model.3)
-dfbetamodel4 <- dfbeta(model.4)
-dfbetamodel4crit <- dfbeta(model.4crit)
+dfbetamodel3crit <- dfbeta(model.3crit)
 
 
 
@@ -581,14 +550,11 @@ sum(dfbetamodel2[, 3] > dfbetaCV2)
 
 sum(dfbetamodel3[, 1] > dfbetaCV3)
 sum(dfbetamodel3[, 2] > dfbetaCV3)
-sum(dfbetamodel3[, 3] > dfbetaCV3)
 
-sum(dfbetamodel4[, 1] > dfbetaCV4)
-sum(dfbetamodel4[, 2] > dfbetaCV4)
 
-sum(dfbetamodel4crit[, 1] > dfbetaCV4crit)
-sum(dfbetamodel4crit[, 2] > dfbetaCV4crit)
-sum(dfbetamodel4crit[, 3] > dfbetaCV4crit)
+sum(dfbetamodel3crit[, 1] > dfbetaCV3crit)
+sum(dfbetamodel3crit[, 2] > dfbetaCV3crit)
+sum(dfbetamodel3crit[, 3] > dfbetaCV3crit)
 
 which(dfbetamodel1[, 1] > dfbetaCV1)
 which(dfbetamodel1[, 3] > dfbetaCV1)
@@ -596,18 +562,14 @@ obs1<-c(1,4,5,7,12,14,16,17,19,23,27,29)
 
 which(dfbetamodel2[, 1] > dfbetaCV2)
 which(dfbetamodel2[, 3] > dfbetaCV2)
-obs2<-c(3,4,6,8,9,12,13,14,16,17,20,23,25,27,28,30)
+obs2<-c(1,3,4,7,8,9,11,12,16,17,20,29,30)
 
 which(dfbetamodel3[, 1] > dfbetaCV3)
-which(dfbetamodel3[, 3] > dfbetaCV3)
-obs3<-c(1,3,4,7,8,9,11,12,16,17,20,29,30)
+which(dfbetamodel3[, 2] > dfbetaCV3)
+obs3<-c(1,3,5,8,9,12,13,14,16,19,23,24,27,28,30)
 
-which(dfbetamodel4[, 1] > dfbetaCV4)
-which(dfbetamodel4[, 2] > dfbetaCV4)
-obs4<-c(1,3,5,8,9,12,13,14,16,19,23,24,27,28,30)
-
-which(dfbetamodel4crit[, 1] > dfbetaCV4crit)
-which(dfbetamodel4crit[, 3] > dfbetaCV4crit)
+which(dfbetamodel3crit[, 1] > dfbetaCV3crit)
+which(dfbetamodel3crit[, 3] > dfbetaCV3crit)
 obs4crit<-c(1,3,8,9,11,12,13,14,19,23,24,26,27,28,30)
 #no las usaremos pq es exagerado, se os reduce mucho 
 
@@ -618,23 +580,19 @@ cheddar[test.1,]
 pos_influyentes_1 <- c(1,7,15,19,24)
 
 influencePlot(model.2)
-pos_influyentes_2 <- c(6,8,12,15,23)
+pos_influyentes_2 <- c(1,6,7,8,15)
 
 influencePlot(model.3)
-pos_influyentes_3 <- c(1,6,7,8,15)
+pos_influyentes_3 <- c(1,12,24)
 
-influencePlot(model.4)
-pos_influyentes_4 <- c(1,12,24)
-
-influencePlot(model.4crit)
-pos_influyentes_4crit <- c(1,8,12,23)
+influencePlot(model.3crit)
+pos_influyentes_3crit <- c(1,8,12,23)
 
 # Colinealidad. Unicamente la estudiamos en el modelo por CRITERIOS pues en STEP solo interviene Lactic
 vif(model.1) # los valores de VIF no indican colinealidad grave
 vif(model.2)
-vif(model.3)
-vif(model.4)#no hay colin por ser una unica variable
-vif(model.4crit)
+vif(model.3)#no hay colin por solo 1 var
+vif(model.3crit)
 
 
 
@@ -646,19 +604,15 @@ vif(model.4crit)
 cheese1 <- cheddar[-pos_influyentes_1, ]
 cheese2 <- cheddar[-pos_influyentes_2, ]
 cheese3 <- cheddar[-pos_influyentes_3, ]
-cheese4 <- cheddar[-pos_influyentes_4, ]
-cheese4crit <- cheddar[-pos_influyentes_4crit, ]
+cheese3crit <- cheddar[-pos_influyentes_3crit, ]
 
 
 model.exh1 <- regsubsets(taste ~ ., data = cheese1[train.1, ], method = "exhaustive")
 model.exh2 <- regsubsets(taste ~ ., data = cheese1[train.2, ], method = "exhaustive")
-
 model.exh3 <- regsubsets(taste ~ ., data = cheese1[train.3, ], method = "exhaustive")
+model.exh3crit <- regsubsets(taste ~ ., data = cheese1[train.3, ], method = "exhaustive")
 
-model.exh4 <- regsubsets(taste ~ ., data = cheese1[train.4, ], method = "exhaustive")
-model.exh4crit <- regsubsets(taste ~ ., data = cheese1[train.4, ], method = "exhaustive")
-
-summary(model.exh)
+summary(model.exh1)
 
 predict.regsubsets <- function(object, newdata, id, ...) {
   form <- as.formula(object$call[[2]])
@@ -669,106 +623,145 @@ predict.regsubsets <- function(object, newdata, id, ...) {
 }
 
 
-pos<-which(test.1==TRUE)
-for (i in pos){
-  i
-  
-  
-}
-
 Y1 <- cheddar[test.1, ]$taste
 Y2 <- cheddar[test.2, ]$taste
 Y3 <- cheddar[test.3, ]$taste
-Y4 <- cheddar[test.4, ]$taste
-Y4crit <- cheese3c[test.4, ]$taste
+Y3crit <- cheddar[test.3, ]$taste
 
 
 
 Yhat1 <-predict(obj=model.1,newdata=cheddar[test.1,])
 Yhat2 <-predict(obj=model.2,newdata=cheddar[test.2,])
 Yhat3 <-predict(obj=model.3,newdata=cheddar[test.3,])
-Yhat4 <-predict(obj=model.4,newdata=cheddar[test.4,])
-Yhat4crit <-predict(obj=model.4crit,newdata=cheddar[test.4,])
+Yhat3crit <-predict(obj=model.3crit,newdata=cheddar[test.3,])
 
 val.errors1 <- mean((Y1 - Yhat1)^2)
 val.errors2 <- mean((Y2 - Yhat2)^2)
 val.errors3 <- mean((Y3 - Yhat3)^2)
-val.errors4 <- mean((Y4 - Yhat4)^2)
-val.errors4crit <- mean((Y4crit - Yhat4crit)^2)
+val.errors3crit <- mean((Y3crit - Yhat3crit)^2)
 
 
 
-for (i in 1:3) {
-  Yhat1 <- predict.regsubsets(model.1, newdata = cheese1[test.1, ])
-  
-  
-  
-  Yhat1 <- predict.regsubsets(model.exh1, newdata = cheese1[test.1, ], id = i)
-  val.errors1[i] <- mean((Y1 - Yhat1)^2)
-  Yhat2 <- predict.regsubsets(model.exh2, newdata = cheese2[test.2, ], id = i)
-  val.errors2[i] <- mean((Y2 - Yhat2)^2)
-  if (i!=3){
-    Yhat3b <- predict.regsubsets(model.exh3b, newdata = cheese3b[test.3, ], id = i)
-    val.errors3b[i] <- mean((Y3b - Yhat3b)^2)
-  }
-  Yhat3c <- predict.regsubsets(model.exh3c, newdata = cheese3c[test.3, ], id = i)
-  val.errors3c[i] <- mean((Y3c - Yhat3c)^2)
+#for (i in 1:3) {
+#  if (i!=3){
+#    Yhat3b <- predict.regsubsets(model.exh3b, newdata = cheese3b[test.3, ], id = i)
+#    val.errors3b[i] <- mean((Y3b - Yhat3b)^2)
+#  }
+#  Yhat3c <- predict.regsubsets(model.exh3c, newdata = cheese3c[test.3, ], id = i)
+#  val.errors3c[i] <- mean((Y3c - Yhat3c)^2)
+#}
+val.errors_ <-rep(NA,3)
+for (i in 1:3){
+  Yhat3 <-predict.regsubsets(model.exh3, newdata=cheddar[test.3,],id=i)
+  val.errors_[i]<- mean((Y3-Yhat3)^2)
 }
+val.errors_
+coef(model.exh3, which.min(val.errors_))
+
+regfit.best3 <- regsubsets(taste ~ ., cheese3)
+coef(regfit.best, which.min(val.errors_))
+regfit.best3crit <- regsubsets(taste ~ ., cheese3crit)
+coef(regfit.best3crit, which.min(val.errors_))
+
+#AHORA CALCULO DE ERRORES
+#cogemos 5 seeds para testear la validez de los dos modelos que nos han surgido
+set.seed(1234) 
+train.a <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.a <- (!train.a)
+set.seed(73) 
+train.b <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.b <- (!train.b)
+set.seed(42) 
+train.c <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.c <- (!train.c)
+set.seed(2221) 
+train.d <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.d <- (!train.d)
+set.seed(1721) 
+train.e <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.e <- (!train.e)
+#deberiamos ver que los modelos en estos train verifican las hipótesis
+model.candidato1 <- lm(taste~H2S + Lactic,data=cheddar)
+model.candidato2 <-lm(taste~Lactic,data=cheddar)
+# En realidad podria haber descartado el 2 usando que para el train de donde salio
+# ya era peor que la otra opción, pero  continuaremos con el para tener con quien comparar
+
+###### AQUI METER EL ASEGURARSE CUMPLE HIPOTESIS
+
+Ya <- cheddar[test.a, ]$taste
+Yb <- cheddar[test.b, ]$taste
+Yc <- cheddar[test.c, ]$taste
+Yd <- cheddar[test.d, ]$taste
+Ye <- cheddar[test.e, ]$taste
 
 
-val.errors
-coef(model.exh, which.min(val.errors))
-
-regfit.best <- regsubsets(taste ~ ., cheddar[-obs.out, ])
-coef(regfit.best, which.min(val.errors))
-
-
+Yhata1 <-predict(obj=model.candidato1,newdata=cheddar[test.a,])
+Yhatb1 <-predict(obj=model.candidato1,newdata=cheddar[test.b,])
+Yhatc1 <-predict(obj=model.candidato1,newdata=cheddar[test.c,])
+Yhatd1 <-predict(obj=model.candidato1,newdata=cheddar[test.d,])
+Yhate1 <-predict(obj=model.candidato1,newdata=cheddar[test.e,])
 
 
-# Validacion cruzada de 1
+Yhata2 <-predict(obj=model.candidato2,newdata=cheddar[test.a,])
+Yhatb2 <-predict(obj=model.candidato2,newdata=cheddar[test.b,])
+Yhatc2 <-predict(obj=model.candidato2,newdata=cheddar[test.c,])
+Yhatd2 <-predict(obj=model.candidato2,newdata=cheddar[test.d,])
+Yhate2 <-predict(obj=model.candidato2,newdata=cheddar[test.e,])
 
-n <- nrow(cheese)
-k <- n # numero de grupos, como es elemento a elemento hay n
+err1<-(mean((Ya-Yhata1)^2)+mean((Yb-Yhatb1)^2)+mean((Yc-Yhatc1)^2)+
+         mean((Yd-Yhatd1)^2)+mean((Ye-Yhate1)^2))/5
+err2<-(mean((Ya-Yhata2)^2)+mean((Yb-Yhatb2)^2)+mean((Yc-Yhatc2)^2)+
+         mean((Yd-Yhatd2)^2)+mean((Ye-Yhate1)^2))/5
 
-folds <- sample(x = 1:k, size = nrow(cheese), replace = FALSE)
-cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
-for (j in 1:k) {
-  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
-  for (i in 1:3) {
-    pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
-    cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
-  }
-}
-
-mean.cv.errors <- apply(cv.errors, 2, mean)
-mean.cv.errors
-coef(best.fit, which.min(mean.cv.errors))
+err1#68.04766
+err2#106.8122
+err1<err2
 
 
-
-# Validacion en 4 grupos, cambiar la linea de k para otro numero
-
-n <- nrow(cheese)
-k <- 4 # numero de grupos
-
-folds <- sample(x = 1:k, size = nrow(cheese), replace = TRUE)
-cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
-for (j in 1:k) {
-  best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
-  for (i in 1:3) {
-    pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
-    cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
-  }
-}
-mean.cv.errors <- apply(cv.errors, 2, mean)
-mean.cv.errors
-coef(best.fit, which.min(mean.cv.errors))
+# # Validacion cruzada de 1
+# 
+# n <- nrow(cheese)
+# k <- n # numero de grupos, como es elemento a elemento hay n
+# 
+# folds <- sample(x = 1:k, size = nrow(cheese), replace = FALSE)
+# cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
+# for (j in 1:k) {
+#   best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
+#   for (i in 1:3) {
+#     pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
+#     cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
+#   }
+# }
+# 
+# mean.cv.errors <- apply(cv.errors, 2, mean)
+# mean.cv.errors
+# coef(best.fit, which.min(mean.cv.errors))
+# 
+# 
+# 
+# # Validacion en 4 grupos, cambiar la linea de k para otro numero
+# 
+# n <- nrow(cheese)
+# k <- 4 # numero de grupos
+# 
+# folds <- sample(x = 1:k, size = nrow(cheese), replace = TRUE)
+# cv.errors <- matrix(NA, k, 3, dimnames = list(NULL, paste(1:3)))
+# for (j in 1:k) {
+#   best.fit <- regsubsets(taste ~ ., data = cheese[folds != j, ]) # cogemos datos del train
+#   for (i in 1:3) {
+#     pred <- predict.regsubsets(best.fit, newdata = cheese[folds == j, ], id = i) # datos test
+#     cv.errors[j, i] <- mean((cheese$taste[folds == j] - pred)^2)
+#   }
+# }
+# mean.cv.errors <- apply(cv.errors, 2, mean)
+# mean.cv.errors
+# coef(best.fit, which.min(mean.cv.errors))
 
 # Comprobacion
 model.cv <- lm(taste ~ H2S + Lactic, data = cheese)
 summary(model.cv)
-plot(lm(taste ~ H2S + Lactic, data = cheese), which = 1)
-plot(lm(taste ~ H2S + Lactic, data = cheese), which = 2)
+plot(lm(taste ~ H2S + Lactic, data = cheddar), which = 1)
+plot(lm(taste ~ H2S + Lactic, data = cheddar), which = 2)
 residualPlot(model.cv)
 influenceIndexPlot(model.cv)
 
@@ -861,81 +854,82 @@ durbinWatsonTest(model.final1)
 
 # Los errores no está correlaciones
 
-
-######### cosas haciendo boxcox y despues de hacerlo ...######
-
-# training con boxcox y despues lo comparo
-bc <- boxCox(model.final1, lambda = seq(-2, 2, 1 / 10), plotit = TRUE)
-lambda <- bc$x[which.max(bc$y)]
-Y_bc <- (cheddar$taste^lambda - 1) / lambda
-
-modelf2.lm <- lm(Y_bc ~ H2S + Lactic, data = cheddar)
-
-influencePlot(modelf2.lm)
-influencePlot(model.final1)
-
-pos_influyentes <- c(1, 6, 7, 15, 28)
-
-cheddar2 <- cheddar
-cheddar2$taste <- (cheddar$taste^lambda - 1) / lambda
-cheddar
-cheddar2
-
-obs.out <- c(1, 6, 7, 15, 28)
-cheese2 <- cheddar2[-obs.out, ]
-
-train <- sample(c(TRUE, FALSE), size = nrow(cheese2), replace = TRUE, prob = c(0.70, 0.30))
-# conjunto de entrenamiento
-test <- (!train)
-test
-model.exh2 <- regsubsets(taste ~ ., data = cheddar2[train, 1:4], method = "exhaustive")
-summary(model.exh)
-
-# la funcion esa que ella siempre copia y pega
-predict.regsubsets <- function(object, newdata, id, ...) {
-  form <- as.formula(object$call[[2]])
-  mat <- model.matrix(form, newdata)
-  coefi <- coef(object, id = id)
-  xvar <- names(coefi)
-  mat[, xvar] %*% coefi
-}
-
-val.errors2 <- rep(NA, 3)
-Y <- cheddar2[test, ]$taste
-for (i in 1:3) {
-  Yhat <- predict.regsubsets(model.exh2, newdata = cheddar2[test, ], id = i)
-  val.errors2[i] <- mean((Y - Yhat)^2)
-}
-
-val.errors2
-coef(model.exh2, which.min(val.errors2))
-
-regfit.best <- regsubsets(taste ~ ., cheddar2[-obs.out, 1:4])
-coef(regfit.best, which.min(val.errors2))
-
-# esto era antes de boxcox
-val.errors
-coef(model.exh, which.min(val.errors))
-
-regfit.best <- regsubsets(taste ~ ., cheddar[-obs.out, 1:4])
-coef(regfit.best, which.min(val.errors))
-
-# para verlo mÃ¡s visual
-
-val.errors
-val.errors2
-
-coef(model.exh2, which.min(val.errors2))
-coef(model.exh, which.min(val.errors))
-
-coef(regfit.best, which.min(val.errors2))
-coef(regfit.best, which.min(val.errors))
+# 
+# ######### cosas haciendo boxcox y despues de hacerlo ...######
+# 
+# # training con boxcox y despues lo comparo
+# bc <- boxCox(model.final1, lambda = seq(-2, 2, 1 / 10), plotit = TRUE)
+# lambda <- bc$x[which.max(bc$y)]
+# Y_bc <- (cheddar$taste^lambda - 1) / lambda
+# 
+# modelf2.lm <- lm(Y_bc ~ H2S + Lactic, data = cheddar)
+# 
+# influencePlot(modelf2.lm)
+# influencePlot(model.final1)
+# 
+# pos_influyentes <- c(1, 6, 7, 15, 28)
+# 
+# cheddar2 <- cheddar
+# cheddar2$taste <- (cheddar$taste^lambda - 1) / lambda
+# cheddar
+# cheddar2
+# 
+# obs.out <- c(1, 6, 7, 15, 28)
+# cheese2 <- cheddar2[-obs.out, ]
+# 
+# train <- sample(c(TRUE, FALSE), size = nrow(cheese2), replace = TRUE, prob = c(0.70, 0.30))
+# # conjunto de entrenamiento
+# test <- (!train)
+# test
+# model.exh2 <- regsubsets(taste ~ ., data = cheddar2[train, 1:4], method = "exhaustive")
+# summary(model.exh)
+# 
+# # la funcion esa que ella siempre copia y pega
+# predict.regsubsets <- function(object, newdata, id, ...) {
+#   form <- as.formula(object$call[[2]])
+#   mat <- model.matrix(form, newdata)
+#   coefi <- coef(object, id = id)
+#   xvar <- names(coefi)
+#   mat[, xvar] %*% coefi
+# }
+# 
+# val.errors2 <- rep(NA, 3)
+# Y <- cheddar2[test, ]$taste
+# for (i in 1:3) {
+#   Yhat <- predict.regsubsets(model.exh2, newdata = cheddar2[test, ], id = i)
+#   val.errors2[i] <- mean((Y - Yhat)^2)
+# }
+# 
+# val.errors2
+# coef(model.exh2, which.min(val.errors2))
+# 
+# regfit.best <- regsubsets(taste ~ ., cheddar2[-obs.out, 1:4])
+# coef(regfit.best, which.min(val.errors2))
+# 
+# # esto era antes de boxcox
+# val.errors
+# coef(model.exh, which.min(val.errors))
+# 
+# regfit.best <- regsubsets(taste ~ ., cheddar[-obs.out, 1:4])
+# coef(regfit.best, which.min(val.errors))
+# 
+# # para verlo mÃ¡s visual
+# 
+# val.errors
+# val.errors2
+# 
+# coef(model.exh2, which.min(val.errors2))
+# coef(model.exh, which.min(val.errors))
+# 
+# coef(regfit.best, which.min(val.errors2))
+# coef(regfit.best, which.min(val.errors))
 
 
 # 6) Conclusion
 
-model.final <- model.final1 ############ tomar el mejor modelo de 4
+model.final <- model.candidato1 ############ tomar el mejor modelo de 4
 summary(model.final)
+plot(model.final)
 # En el summary podemos observar tanto los valores de betahat, sus p-valores y sigma
 
 coeff <- summary(model.final)$coeff[,1]
@@ -945,7 +939,19 @@ coeff <- summary(model.final)$coeff[,1]
 rse <- sqrt(deviance(model.final)/df.residual(model.final))
 pval <- summary(model.final)$coeff[,4]
 
+
+#calculamos su R^2 
 anova(model.final)
+SSE<-anova(model.final)[3,2]
+SST<- anova(model.final)[1,2]+anova(model.final)[2,2]+anova(model.final)[3,2]
+rsqr<-1-SSE/SST
+rsqr
+Rsqr<-summary(model.final)$r.squared
+#calculamos su R^2 ajustada
+MSE<- SSE/anova(model.final)[3,1]
+MST<- SST/(anova(model.final)[1,1]+anova(model.final)[2,1]+anova(model.final)[3,1])
+Radj<-1-MSE/MST
+Radj#se comprueba en la tabla summary es cierta
 
 
 # Observamos como se distribuye la variable taste en función de H2S y Lactic
