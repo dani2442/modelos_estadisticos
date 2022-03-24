@@ -84,21 +84,21 @@ layout(matrix(1:1, nrow = 1))
 
 
 # 2) Estudio y evaluacion del modelo completo
-attach(cheddar[train,])
+attach(cheddar)
 
-x <- model.matrix( ~ Acetic + H2S + Lactic, data = cheddar[train,])
+x <- model.matrix( ~ Acetic + H2S + Lactic, data = cheddar)
 betahat <- solve(crossprod(x, x), crossprod(x, taste))
 betahat <- c(betahat)
 betahat
 
 # Comprobamos el resultado con funciones ya implementadas
-model.all <- lm(taste ~ ., data = cheddar[train,])
+model.all <- lm(taste ~ ., data = cheddar)
 summary(model.all)
 model.all$coefficients
 
 # Correlaciones y tabla de resultados con el estudio de sus p-valores
-cor(cheddar[train,])
-ggpairs(cheddar[train,])
+cor(cheddar)
+ggpairs(cheddar)
 
 mat_cor <- cor(cheddar, method = "pearson")
 corrplot(mat_cor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
@@ -113,6 +113,7 @@ anova(model.all)
 
 
 # 3) Seleccion del mejor modelo. Metodos por pasos y por criterios
+attach(cheddar[train,])
 
 # i) BACKWARD (alpha=0.05)
 
