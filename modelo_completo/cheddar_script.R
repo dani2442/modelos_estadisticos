@@ -7,7 +7,7 @@ install.packages("ggplot2")
 install.packages("GGally")
 install.packages("corrplot")
 install.packages("scatterplot3d")
-
+install.packages("lmtest")
 
 library(faraway)
 library(leaps)
@@ -19,7 +19,7 @@ library(GGally)
 library(corrplot)
 library(plotly)
 library(scatterplot3d)
-
+library(lmtest)
 
 
 
@@ -62,19 +62,19 @@ plot(cheddar)
 layout(matrix(1:3, nrow = 1))
 
 plot(Acetic, taste,
-     main = "Relación entre Taste y Acetic",
+     main = "RelaciÃ³n entre Taste y Acetic",
      xlab = "Acetic", ylab = "Taste",
      pch = 20, frame = FALSE)
 
 
 plot(H2S, taste,
-     main = "Relación entre Taste y H2S",
+     main = "RelaciÃ³n entre Taste y H2S",
      xlab = "H2S", ylab = "Taste",
      pch = 20, frame = FALSE)
 
 
 plot(Lactic, taste,
-     main = "Relación entre Taste y Lactic",
+     main = "RelaciÃ³n entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
      pch = 19, frame = FALSE)
 
@@ -137,15 +137,15 @@ SCOPE <- (~ . + Acetic + H2S + Lactic)
 model.inicial <- lm(taste ~ 1, data = cheddar[train,]) # solo el termino independiente
 
 add1(model.inicial, scope = SCOPE, test = "F")
-# A�adimos Lactic por ser la variable predictora con menor p-valor
+# Añadimos Lactic por ser la variable predictora con menor p-valor
 model.updateF1 <- update(model.inicial, . ~ . + Lactic)
 
 add1(model.updateF1, scope = SCOPE, test = "F")
-# no a�adimos ninguna variable pues sus p-valores superan la barrera de alpha
+# no añadimos ninguna variable pues sus p-valores superan la barrera de alpha
 
 model.final2 <- lm(taste ~ Lactic, data = cheddar[train,])
 summary(model.final2)
-# N�tese que los modelos obtenidos por metodos de pasos coinciden
+# Nótese que los modelos obtenidos por metodos de pasos coinciden
 
 model.step <- lm(taste ~ Lactic, data = cheddar[train,])
 anova(model.step, model.all)
@@ -181,79 +181,102 @@ model.crit <- lm(taste ~ H2S + Lactic, data=cheddar[train,])
 anova(model.crit, model.all)
 
 
-# 4) Diagnostico
+
+# 4) Diagnostico. Comprobaciones de hipotesis, outliers y observaciones influyentes
 attach(cheddar)
 
-plot(model.final1)
-fmodel <- fortify(model.final1)
-head(fmodel)
+# Comprobación de hipótesis del modelo 1 (BACKWARD y FORWARD)
+
+# Linealidad
+plot(Lactic, taste,
+     main = "RelaciÃ³n entre Taste y Lactic",
+     xlab = "Lactic", ylab = "Taste",
+     pch = 19, frame = FALSE) 
+
+resettest(model.step, power=2:3, type="regressor", data=cheddar) # p-valor > 0.05 luego aceptamos hipótesis de linealidad
 
 # Normalidad y Autocorrelacion
-shapiro.test(resid(model.final1)) # normalidad de los residuos
-qqnorm(Model$.stdresid) # o la funcion 2 del plot anterior
+shapiro.test(resid(model.step)) # como el p-valor > 0.05 no se rechaza la hipótesis nula, i.e. la normalidad
 
-durbinWatsonTest(model.final1) # no correlacion de errores
-# es en este en el que se suponen en un tiempo (INDEX)
+qqnorm(resid(model.step)) 
+qqline(resid(model.step))
+# observamos que las colas no siguen el mismo patrón que el resto de datos, lo que podría indicar que 
+#  el modelo no sigue una distribución normal. Sin embargo, al no afectar a un gran porcentaje de los datos y
+#  teniendo en cuenta el resultado previo obtenido por el Test de Shapiro-Wilk no rechazamos la hipótesis de normalidad.
 
-plot(residuals(model.final1), pch = 19)
-plot(fmodel$.resid, ylab = "Residuos")
+durbinWatsonTest(model.step) # como el p-valor es mayor que 0.05 se acepta que no hay autocorrelacion en los datos
 
+# Homocedasticidad
+fmodel <- fortify(model.step)
 
-# INTRODUCIR HIPOTESIS DE MEDIA ERRORES NULA
-
-# Estudio de hipótesis supuestas:
-
-residuos <- resid(model.y)
-
-
-# Los errores tienen distribución normal y media cero
-shapiro.test(residuos)
-
-t.test(residuos, mu = 0, alternative = "two.sided")
-t.test(resid(modelf2.lm), mu = 0, alternative = "two.sided")
-# ambos tienen p-valor 1
-
-# Los errores tienen varianza constante
-res.aov <- aov(model.y, data = cheddar)
-summary(res.aov)
-
-res.bcaov <- aov(modelf2.lm, data = cheddar)
-summary(res.aov)
-# con alpha = 0.05 se garantizan las dos.
-
-# Los errores no estan correlacionados
-acf(residuos)
-# Tiene que quedar 0 en 1 y el resto por debajo de nivel de signficacion, ocurre
-durbinWatsonTest(model.y)
-durbinWatsonTest(model.final1)
-# Comprobado
-# ----------
-
-
-# Bonferroni
-alpha <- 0.05
-BCV <- qt(1 - alpha / (2 * 30), 26) # el valor crítico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
-BCV
-sum(abs(rstudent(model.final1)) > BCV)
-which.max(abs(rstudent(model.final1)))
-
-
-# Residuos Estandarizados
 X <- fmodel$.fitted
 Y <- fmodel$.stdresid
-plot(X, Y, ylab = "Residuos Estandarizados", xlab = "Valores Ajustados")
-segments(5, 0, 40, 0)
-# en esa grafico hablar de homocedasticidad (varianza constante)
-sort(abs(rstandard(model.final1)), decreasing = TRUE)[1:3]
+plot(X, Y, ylab = "Residuos estandarizados", xlab = "valores ajustados")
+# Los residuos se distribuyen de forma homogénea a lo largo de una banda horizontal, luego se verifica la hipótesis
 
-# mas  formas de verlo(formula del paquete car)(sino ver test White en otro package)
-ncvTest(model.final1) # p valor "grande" no hay evidencias para rechazar que sea cte
+ncvTest(model.step) # como el p-valor > 0.05 no hay evidencias para rechazar que la varianza sea constante
 
 
-# Outliers y High Leverage
-outlierTest(model.final1) # no hay outliers
+# Comprobación de hipótesis del modelo 2 (métodos por CRITERIOS)
+plot(model.crit)
 
+# Linealidad
+plot(H2S, taste,
+     main = "RelaciÃ³n entre Taste y Lactic",
+     xlab = "H2S", ylab = "Taste",
+     pch = 19, frame = FALSE) 
+
+plot(Lactic, taste,
+     main = "RelaciÃ³n entre Taste y Lactic",
+     xlab = "Lactic", ylab = "Taste",
+     pch = 19, frame = FALSE) 
+
+
+resettest(model.crit, power=2:3, type="regressor", data=cheddar) # p-valor > 0.05 luego aceptamos hipótesis de linealidad
+# Este test nos da a entender que este modelo verifica la hipótesis de linealidad con mucha más contundencia que el anterior.
+
+# Normalidad y Autocorrelacion
+shapiro.test(resid(model.crit)) # como el p-valor > 0.05 no se rechaza la hipótesis nula, i.e. la normalidad
+
+qqnorm(resid(model.crit)) 
+qqline(resid(model.crit))
+
+durbinWatsonTest(model.crit) # como el p-valor es mayor que 0.05 se acepta que no hay autocorrelacion en los datos
+
+# Homocedasticidad
+fmodel <- fortify(model.crit)
+
+X <- fmodel$.fitted
+Y <- fmodel$.stdresid
+plot(X, Y, ylab = "Residuos estandarizados", xlab = "valores ajustados")
+# Los residuos se distribuyen de forma homogénea a lo largo de una banda horizontal, luego se verifica la hipótesis
+
+ncvTest(model.crit) # como el p-valor > 0.05 no hay evidencias para rechazar que la varianza sea constante
+
+
+
+# Outliers
+alpha <- 0.05
+BCV <- qt(1 - alpha / (2 * 30), 26) # el valor critico de Bonferroni t_{1-alpha/2n;n-p-1}, n=30,p=3
+
+sum(abs(rstudent(model.step)) > BCV)
+sum(abs(rstudent(model.crit)) > BCV)
+
+outlierTest(model.step)
+outlierTest(model.crit) # no hay en ninguno de los dos modelos planteados
+
+
+
+# Observaciones Influyentes
 # Criterio 1: valores leverage (hii) mayores que 2p/n
+X <- model.matrix(~ Lactic, data = cheddar)
+H <- X %*% solve(t(X) %*% X) %*% t(X)
+hii <- diag(H)
+
+hCV <- 2 * 3 / 30
+sum(hii > hCV)
+
+
 X <- model.matrix(~ H2S + Lactic, data = cheddar)
 H <- X %*% solve(t(X) %*% X) %*% t(X)
 hii <- diag(H)
@@ -265,13 +288,29 @@ which(hii > hCV) # 6
 
 # Criterio 2: valores |DFFITS| son mayores que 2*sqrt(p/n)
 dffitsCV <- 2 * sqrt(3 / 30)
-dffitsmodel <- dffits(model.final1)
 
+dffitsmodel <- dffits(model.step)
 sum(dffitsmodel > dffitsCV)
+which(dffitsmodel > dffitsCV) # 12,9
+
+dffitsmodel <- dffits(model.crit)
+sum(dffitsmodel > dffitsCV)
+which(dffitsmodel > dffitsCV) # 12,9
+
 
 # Criterio 3: valores |DFBETAS| mayores que 2/sqrt(n)
 dfbetaCV <- 2 / sqrt(30)
-dfbetamodel <- dfbeta(model.final1)
+dfbetamodel <- dfbeta(model.step)
+dfbetamodel
+
+sum(dfbetamodel[, 1] > dfbetaCV)
+sum(dfbetamodel[, 2] > dfbetaCV)
+
+which(dfbetamodel[, 1] > dfbetaCV)
+which(dfbetamodel[, 2] > dfbetaCV)
+
+
+dfbetamodel <- dfbeta(model.crit)
 dfbetamodel
 
 sum(dfbetamodel[, 1] > dfbetaCV)
@@ -279,18 +318,37 @@ sum(dfbetamodel[, 2] > dfbetaCV)
 sum(dfbetamodel[, 3] > dfbetaCV)
 
 which(dfbetamodel[, 1] > dfbetaCV)
+which(dfbetamodel[, 2] > dfbetaCV)
 which(dfbetamodel[, 3] > dfbetaCV)
 
+
+
 # Grafica con la distancia de Cook
-influencePlot(model.final1)
-pos_influyentes <- c(6, 7, 8, 12, 15)
+influencePlot(model.step)
+pos_influyentes_step <- c(1,12,24)
+
+influencePlot(model.crit)
+pos_influyentes_crit <- c(1,8,12,23)
 
 
-# Eliminamos estas observaciones y estudiamos el resultado
-obs.out <- c(6, 7, 8, 12, 15)
-cheese <- cheddar[-obs.out, ]
+# Colinealidad. Unicamente la estudiamos en el modelo por CRITERIOS pues en STEP solo interviene Lactic
+vif(model.crit) # los valores de VIF no indican colinealidad grave
 
-set.seed(1) # establecemos la semilla y distribuimos 70-30%
+
+
+
+
+# 5) Errores de Test. Comparacion de Modelos
+
+# Comenzamos eliminando las observaciones influyentes de ambos modelos
+obs.out <- pos_influyentes_step
+cheese1 <- cheddar[-obs.out, ]
+
+obs.out <- pos_influyentes_crit
+cheese1 <- cheddar[-obs.out, ]
+
+
+set.seed(5) # establecemos la semilla y distribuimos 70-30%
 train <- sample(c(TRUE, FALSE), size = nrow(cheese), replace = TRUE, prob = c(0.7, 0.3))
 test <- (!train)
 
@@ -414,17 +472,17 @@ confidenceEllipse(model.y,
                   level = 0.90, which.coef = c(2, 3),
                   Scheffe = TRUE, main = ""
 )
-title(main = "Elipsoide de confianza Scheffé")
+title(main = "Elipsoide de confianza ScheffÃ©")
 abline(v = SchSimCI[1, ])
 abline(h = SchSimCI[2, ])
 
 
 
-# Estudio de hip�tesis supuestas:
+# Estudio de hipótesis supuestas:
 
 residuos <- resid(model.y)
 
-# Los errores tienen distribuci�n normal y media cero
+# Los errores tienen distribución normal y media cero
 shapiro.test(residuos)
 
 t.test(residuos, mu = 0, alternative = "two.sided")
@@ -448,15 +506,15 @@ durbinWatsonTest(model.final1)
 # Comprobado
 
 
-#### BoxCox: Estudio de hip�tesis supuestas:
+#### BoxCox: Estudio de hipótesis supuestas:
 
-# Los errores tienen distribuci�n normal
+# Los errores tienen distribución normal
 
 # Tiene media 0
 
 # Varianza constante
 
-# Los errores no est� correlaciones
+# Los errores no está correlaciones
 
 
 ######### cosas haciendo boxcox y despues de hacerlo ...######
@@ -517,7 +575,7 @@ coef(model.exh, which.min(val.errors))
 regfit.best <- regsubsets(taste ~ ., cheddar[-obs.out, 1:4])
 coef(regfit.best, which.min(val.errors))
 
-# para verlo más visual
+# para verlo mÃ¡s visual
 
 val.errors
 val.errors2
@@ -536,7 +594,7 @@ summary(model.final)
 # En el summary podemos observar tanto los valores de betahat, sus p-valores y sigma
 
 coeff <- summary(model.final)$coeff[,1]
-# La ecuaci�n de nuestro modelo final es y = beta0 + beta1*x_H + beta2*x_L,
+# La ecuación de nuestro modelo final es y = beta0 + beta1*x_H + beta2*x_L,
 #    donde x_H y x_L denotan los valores observados de H2S y Lactic.
 
 rse <- sqrt(deviance(model.final)/df.residual(model.final))
@@ -545,7 +603,7 @@ pval <- summary(model.final)$coeff[,4]
 anova(model.final)
 
 
-# Observamos como se distribuye la variable taste en funci�n de H2S y Lactic
+# Observamos como se distribuye la variable taste en función de H2S y Lactic
 plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", color=taste) %>% 
   layout(scene = list(xaxis = list(title = 'H2S (%)'),
                       yaxis = list(title = 'Lactic (%)'),
