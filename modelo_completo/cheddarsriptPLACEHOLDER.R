@@ -354,7 +354,7 @@ qqline(resid(model.4))
 
 shapiro.test(resid(model.4crit))#bien
 qqnorm(resid(model.4crit))
-qqline(resid(model.4crit)
+qqline(resid(model.4crit))
 
 # qqnorm(resid(model.step)) 
 # qqline(resid(model.step))
