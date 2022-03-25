@@ -686,7 +686,94 @@ model.candidato2 <-lm(taste~Lactic,data=cheddar)
 # En realidad podria haber descartado el 2 usando que para el train de donde salio
 # ya era peor que la otra opciÃ³n, pero  continuaremos con el para tener con quien comparar
 
-###### AQUI METER EL ASEGURARSE CUMPLE HIPOTESIS
+###### Hipotesis del modelo de regresion lineal
+
+vector_semillas <- c(1234,73,42,21,77)
+lista_train <- list()
+lista_test <- list()
+
+i <- 1
+for (semilla in vector_semillas){
+  
+  set.seed((semilla))
+  train <- sample(c(TRUE, FALSE),
+                  size = nrow(cheddar),
+                  replace = TRUE,
+                  prob = c(0.7, 0.3))
+  test <- (!train)
+  lista_train[[i]] <- c(train)
+  lista_test[[i]] <- c(test)
+  i <- i + 1
+}
+
+
+modelos_hip <- c("S1 taste ~ H2s + Lactic",
+                 "S1 taste ~ Lactic",
+                 "S2 taste ~ H2s + Lactic",
+                 "S2 taste ~ Lactic",
+                 "S3 taste ~ H2s + Lactic",
+                 "S3 taste ~ Lactic",
+                 "S4 taste ~ H2s + Lactic",
+                 "S4 taste ~ Lactic",
+                 "S5 taste ~ H2s + Lactic",
+                 "S5 taste ~ Lactic",
+                 "Nivel de significacion")
+
+hip_RL <- c("Distribución_normal",
+            "Media_0",
+            "Varianza_no_constante_H2S",
+            "Varianza_no_constante_L",
+            "No_Autocorrelación")
+placeholder <- vector(mode = "logical",length = 11)
+df_hipRL <- data.frame("0" = placeholder,
+                       "1" = placeholder,
+                       "2" = placeholder,
+                       "3" = placeholder,
+                       "4" = placeholder,
+                       row.names = modelos_hip)
+
+colnames(df_hipRL) <- hip_RL
+
+r <- 1
+for (dtrain in lista_train){
+  model.HL.lm <- lm(taste ~ H2S + Lactic,
+                    data = cheddar[dtrain,])
+  residuos <- resid(model.HL.lm)
+  res.aov <- aov(model.HL.lm)
+  new_row <- c()
+  
+  shap <- round(shapiro.test(residuos)$p.value,3)
+  t <- round(t.test(residuos, mu = 0, alternative = "two.sided")$p.value,3)
+  aovL <- round(summary(res.aov)[[1]][["Pr(>F)"]][1],3)
+  aovH <-  round(summary(res.aov)[[1]][["Pr(>F)"]][2],3)
+  dw <- round(durbinWatsonTest(model.HL.lm)[[3]],3)#CORREGIR PROBLEMILLA; NO SON ESTOS LOS P
+  
+  new_row = c(shap,t,aovH,aovL,dw)
+  df_hipRL[r,] <- new_row
+  r = r + 2
+}
+
+r <- 2
+for (dtrain in lista_train){
+  model.L.lm <- lm(taste ~Lactic,
+                   data = cheddar[dtrain,])
+  residuos <- resid(model.L.lm)
+  res.aov <- aov(model.L.lm)
+  new_row <- c()
+  
+  shap <- round(shapiro.test(residuos)$p.value,3)
+  t <- round(t.test(residuos, mu = 0, alternative = "two.sided")$p.value,3)
+  aovL <- round(summary(res.aov)[[1]][["Pr(>F)"]][1],3)
+  dw <- round(durbinWatsonTest(model.L.lm)[[3]],3)#CORREGIR PROBLEMILLA; NO SON ESTOS LOS P
+  
+  new_row = c(shap,t,"No participa",aovL,dw)
+  df_hipRL[r,] <- new_row
+  r = r + 2
+}
+#Los datos del dataframe están redondeados al tercer decimal por claridad.
+df_hipRL
+
+#ESCRIBIR COMENTARIOS SOBRE LOS DATOS DEL ANOVA H2S 
 
 Ya <- cheddar[test.a, ]$taste
 Yb <- cheddar[test.b, ]$taste
