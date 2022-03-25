@@ -94,6 +94,21 @@ summary(model.all)
 model.all$coefficients
 
 anova(model.all)
+
+# Intervalos de confianza de las betas del modelo completo
+confint(model.all)
+# Observamos que 0 esta en el intervalo de confianza de beta_0 y beta_Acetic, planteamos dos tests
+#    con hipótesis nula beta_i = 0 y hipotesis alternativa beta_i != 0.
+
+# Comenzamos con beta_Acetic pues el valor estimado es más cercano a 0 que el de beta_0
+modnoAcetic <- lm(taste ~ H2S + Lactic, data=cheddar)
+anova(modnoAcetic,model.all) # no solo el p-valor > 0.05 sino que de hecho p-valor ~ 1, aceptamos la hipotesis nula.
+
+modnoInterceptor <- lm(taste ~ H2S + Lactic + 0, data=cheddar) # modelo reducido sin interceptor
+anova(modnoInterceptor,model.all) # el p-valor es menor que 0.05, luego no es suficiente para rechazar la hipotesis nula
+
+# De aqui deducimos que la variable Acetic no sera muy relevante para el estudio de los distintos modelos que estudiaremos.
+
 # Correlaciones y tabla de resultados con el estudio de sus p-valores
 cor(cheddar)
 ggpairs(cheddar)
