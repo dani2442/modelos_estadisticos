@@ -10,7 +10,13 @@ To do list:
 
 	En R:
 		[creo HECHO]Hacer apartados 3,4 con 3 semillas
-		5 - Escoger 5 semillas distintas de las de antes
+		5 - [HECHO]Escoger 5 semillas distintas de las de antes
 		    Comprobar los supuestos del modelo de regresión lineal en cada seed y cada modelo.
 		    Observaciones influyentes para crear test set de forma manual en cada caso.
 		    [HECHO]Predecir los resultados con estos modelos y medir el error.
+
+		Añadir comentarios a lo de las 5 semillas.
+
+		Terminar de comentar el notebook, lo del error no lo llevo muy bien asi que copiare los 
+		comentarios que haya del script y cuando este pasado haceis alguna aportacion a la parte
+		escrita.
