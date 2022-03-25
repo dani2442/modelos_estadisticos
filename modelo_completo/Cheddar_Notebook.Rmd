@@ -194,33 +194,37 @@ betahat <- solve(crossprod(x, x), crossprod(x, taste))
 betahat <- c(betahat)
 betahat
 ```
+Por tanto, aproximamos las $\beta$ modelo lineal completo con los valores de $\hat{\beta}_0,\dots,\hat{\beta}_3$ con los siguientes valores:
 
+$$
+\hat{\beta}_0=-14.016212,\quad\hat{\beta}_1=-5.066965,\quad\hat{\beta}_2=3.217036,\quad\hat{\beta}_3=31.938449
+$$
 
 ## 2.1 Resolución usando librerias de R
 
+Podemos utilizar la función $lm$, ya programada en R. 
+
 ```{r}
 model.all.lm <- lm(taste ~ ., data = cheddar[train,])
-model.all.lm$coefficients
+model.all.lm$coefficients # Coeficientes del modelo completo
 ```
-Que evidentemente son los mismos.  
+Evidentemente los resultados son los mismos.
 
 Estudiemos preliminarmente si es un modelo lineal adecuado, para ello 
-comprobaremos las hipótesis estándar del modelo lineal de regresión
+comprobaremos las hipótesis estándar del modelo lineal de regresión usando el **test de normalidad Shapiro-Wilk**. La función $shapiro.test$ le pasamos por parámetro el residuo/error de cada una de las muestras y nos devuelve un $p$-valor.
 
 
 ```{r}
 shapiro.test(resid(model.all.lm))
 
 ```
-Observamos que estamos en la hipótesis de que el error nuestro modelo se
-distribuye de manera normal. (p-value = 0.8865 > 0.05) 
+Observamos que estamos en la hipótesis de que el error nuestro modelo se distribuye de manera normal, ya que el p-valor es $0.8865 > 0.05$. 
 
-¿Tienen todas las variables un impacto relevante en el modelo?
+Ahora nos preguntamos si hay variables que tienen un mayor impacto en el modelo. Estas variables podrían ser *outliers* y podríamos deshecharlas del training set ya que podrían estar perjudicando la predicción del modelo negativamente.
 
 ```{r}
 summary(model.all.lm)
 ```
-
 Obervamos el p-valor de A nos indica que con casi toda seguridad A no tiene 
 impacto real en el modelo ( > 0.94)
 
@@ -232,40 +236,39 @@ el modelo completo a pesar de ser el más complejo probablemente da resultados
 similares a otro más simple.
 
 #### 2.3 Correlaciones y tabla de resultados con el estudio de sus p-valores
+Usamos el paquete $GGplot$ de R, el cual nos permite visualizar la correlación y dispersión entre las distintas variables.
 
 ```{r message=FALSE}
 corplot <- ggpairs(cheddar[train,], progress=FALSE)
 corplot 
 ```
-
+Para medir la correlación podemos utilizar también la función *cor*, que utiliza el método de **Pearon**. Podemos observar que la correlación de la propia variable con sigo misma es máxima (=1).
 ```{r}
 mat_cor <- cor(cheddar, method = "pearson")
 corrplot(mat_cor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 ```
-
+Ahora utilizamos el anális **anova** (Analysis of Variance), para justificar si podemos eliminar alguna variable del modelo.
 ```{r}
 anova(model.all.lm)
 ```
-Todos nuestros p-valores son adecuados a un nivel \alpha = 0.05 
+Todos nuestros p-valores son adecuados a un nivel $\alpha$ = 0.05. En nuestro caso nos vale, sin embargo, la variable *Lactic* no lo cumpliría si disminuimos el nivel de $\alpha$ a una cota inferior como 0.01. 
 
 ## 2.4 ¿Tiene *outliers* nuestra muestra?
 
-Para comprobarlo basta realizar el siguiente test:
+Para comprobarlo basta realizar el **test de Bonferroni** sobre nuestro modelo completo:
 
 ```{r}
 outlierTest(model.all.lm)
 ```
 
-Concluimos con un nivel $\alpha$ = 0.05 que no tenemos ningún outlier en nuestra 
-muestra.
+Concluimos con un nivel $\alpha$ = 0.05 que no tenemos ningún outlier en nuestra. Lo más cercano a un *outlier* que tenemos es la observación número 12, que tiene un valor **Bonferroni p** de 0.53993 (no se acerca a 0.05). Por tanto, no tenemos razones por las que eliminar alguna observación inusual de nuestro conjunto de datos. 
 
-Esto se puede comprobar graficamente a través del siguiente gráfico
+Esto se puede comprobar graficamente a través del siguiente gráfico, el cual mide la influencia de cada observación sobre cada una de las betas de nuestro modelo. Vemos que la que más influye es la antes mencionada obsercación 12.
 
 ```{r}
 influenceIndexPlot(model.all.lm)
 ```
-Observamos que hay un pequeño grupo de observaciones que aunque no sean *outliers*
-pueden alterar la claidad del modelo.
+Podemos ver que hay un pequeño grupo de observaciones que aunque no sean *outliers* pueden alterar la claridad del modelo.
 
 
 ### 3.¿Cuál es el mejor modelo?
