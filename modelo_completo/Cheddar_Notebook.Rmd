@@ -7,16 +7,24 @@ author:
   - name: "Jose"
   - name: "David"
 date: "25/03/2022"
+always_allow_html: TRUE
 abstract:
-  "Hemos analizado con las herramientas proporcionadas en el curso de Modelos Estadísticos el conjunto de datos, *Cheddar*, distribuido en la librería Faraway de R. Para ello hemos utilizado diversas técnicas de regresión lineal y   no lineal."
+  "Hemos analizado con las herramientas proporcionadas en el curso de Modelos Estadísticos el conjunto de datos, *Cheddar*, distribuido en la librería Faraway de R. Para ello hemos utilizado diversas técnicas de regresión lineal y   no lineal.\n"
 output: 
-  html_notebook: default
-  pdf_document: default
   html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
     df_print: paged
+  html_notebook: default
+  pdf_document: 
+    
+    number_sections: true
 ---
 
-# 1. Introducción
+
+
+# Introducción
 
 En un estudio de queso Cheddar realizado en el Valle de Latrobe (Victoria, Australia), se estudiaron muestras de queso en las que se analizó su composición química y fueron dadas a probar a distintos sujetos para que valoraran su sabor. Los valores asignados a cada queso son el resultado de combinar las distintas valoraciones. 
 
@@ -167,19 +175,19 @@ Podemos observar que la que aperentemente guarda una menor relación lineal con 
 
 
 
-# 2. Estudio y evaluación del modelo completo.  
+# Estudio y evaluación del modelo completo.  
 
 Simplificamos nuestra notación para las variables. Intentaremos predecir la variable *taste* usando el resto de variables. Para empezar, definimos el modelo completo, el cual se usan todas las variables para nuestro modelo lineal múltiple.
 
 $$
 Y_i =\beta_0 + \beta_1 x_{i1} + \dots + \beta_{p-1}x_{i(p-1)} + \epsilon_i,\quad i=1,\dots,n
 $$
-donde $Y_i$ es el valor de la variable respuesta para el individuo $i$−ésimo, \
-$\beta_0$ y los $\beta_j$ son los par´ametros $j = 1, ..., p − 1$, \
+donde $Y_i$ es el valor de la variable respuesta para el individuo $i$-ésimo, \
+$\beta_0$ y los $\beta_j$ son los par´ametros $j = 1, ..., p - 1$, \
 $x_{ij}$ son los elementos de la matriz de las variables explicativas \
 $\epsilon_i$ es el término del error aleatorio que suponemos que se distribuye como una $\mathcal{N}(0,\sigma^2)$, donde $\sigma^2$ es la varianza que suele ser desconocida.
 
-## 2.1 Resolución mediante matrices
+## Resolución mediante matrices
 
 Utilizamos el método de mínimos cuadrados que estima los valores $\hat{\beta}$ intentando minimizar los errores $\epsilon$. Como hemos visto en clase, la fórmula que se deduce es:
 
@@ -200,7 +208,7 @@ $$
 \hat{\beta}_0=-14.016212,\quad\hat{\beta}_1=-5.066965,\quad\hat{\beta}_2=3.217036,\quad\hat{\beta}_3=31.938449
 $$
 
-## 2.1 Resolución usando librerias de R
+## Resolución usando librerias de R
 
 Podemos utilizar la función $lm$, ya programada en R. 
 
@@ -235,7 +243,7 @@ Una vez hemos concluido que aunque estamos en las hipótesis de regresión linea
 el modelo completo a pesar de ser el más complejo probablemente da resultados 
 similares a otro más simple.
 
-#### 2.3 Correlaciones y tabla de resultados con el estudio de sus p-valores
+#### Correlaciones y tabla de resultados con el estudio de sus p-valores
 Usamos el paquete $GGplot$ de R, el cual nos permite visualizar la correlación y dispersión entre las distintas variables.
 
 ```{r message=FALSE}
@@ -243,17 +251,19 @@ corplot <- ggpairs(cheddar[train,], progress=FALSE)
 corplot 
 ```
 Para medir la correlación podemos utilizar también la función *cor*, que utiliza el método de **Pearon**. Podemos observar que la correlación de la propia variable con sigo misma es máxima (=1).
+
 ```{r}
 mat_cor <- cor(cheddar, method = "pearson")
 corrplot(mat_cor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 ```
 Ahora utilizamos el anális **anova** (Analysis of Variance), para justificar si podemos eliminar alguna variable del modelo.
+
 ```{r}
 anova(model.all.lm)
 ```
 Todos nuestros p-valores son adecuados a un nivel $\alpha$ = 0.05. En nuestro caso nos vale, sin embargo, la variable *Lactic* no lo cumpliría si disminuimos el nivel de $\alpha$ a una cota inferior como 0.01. 
 
-## 2.4 ¿Tiene *outliers* nuestra muestra?
+## ¿Tiene *outliers* nuestra muestra?
 
 Para comprobarlo basta realizar el **test de Bonferroni** sobre nuestro modelo completo:
 
@@ -271,12 +281,13 @@ influenceIndexPlot(model.all.lm)
 Podemos ver que hay un pequeño grupo de observaciones que aunque no sean *outliers* pueden alterar la claridad del modelo.
 
 
-### 3.¿Cuál es el mejor modelo?
+## ¿Cuál es el mejor modelo?
 
-#### 3.1. Método Backward  
+Como dice el **Principio de la Navaja de Ockham**, a menudo la explicación más simple es la correcta. Queremos seleccionar predictores que explican los datos de la manera más simple posible, sin disminuir la calidad de las predicciones mucho.
 
-Partimos del modelo completo estudiado en la sección anterior y aplicamos con
-\alpha = 0.05.
+### Método Backward  
+
+Partimos del modelo completo estudiado en la sección anterior y aplicamos con $\alpha$ = 0.05, el metodo de Backward, que consiste en eliminar la variable que *menos influya* a la predicción.
 
 ```{r}
 drop1(model.all.lm, test = "F")
@@ -284,62 +295,68 @@ drop1(model.all.lm, test = "F")
     
 Quitamos Acetic del modelo debido que su p-valor es > 0.05 
 ```{r}
-model.update1 <- update(model.all.lm, . ~ . - Acetic)
-drop1(model.update1, test = "F")
+model.backward <- update(model.all.lm, . ~ . - Acetic)
+drop1(model.backward, test = "F")
 ```
-```{r}
-model.update2 <- update(model.all.lm, . ~ . - H2S)
-drop1(model.update2, test = "F")
-```
-
-Todos los p-valores son menores que \alpha = 0.05 por lo tanto hemos concluido
+Repetimos el proceso con la variable H2S, ya que tiene un valor mayor que $\alpha = 0.05$
 
 ```{r}
-model.backward.lm <- lm(taste~Lactic, data =  cheddar[train,])
+model.backward <- update(model.backward, . ~ . - H2S)
+drop1(model.backward, test = "F")
+```
+
+El p-valor es menor que $\alpha = 0.05$. Por tanto, hemos concluido, ya que no tenemos suficiente certeza para poder eliminar otra variable.
+
+Por tanto, tenemos como resultado que la variable que mejor explica el *taste* es *Lactic*.
+
+```{r}
+# Modelo resultante del método Backward
+model.backward
 ```
 Modelo resultante: **taste ~ Lactic.**
 
-#### 3.2. Método Backward 
+### Método Forward 
 
+El método Forward consiste en empezar con un modelo de una variable y vamos añadiendo las que más influyan. De esta manera tenemos:
 
 ```{r}
 SCOPE<-(~.+Acetic + H2S + Lactic)
-model.inicial <- lm(taste~1,data= cheddar[train,])
-add1(model.inicial,scope=SCOPE,test="F")
+model.forward.lm <- lm(taste~1,data= cheddar[train,])
+add1(model.forward.lm,scope=SCOPE,test="F")
 
 ```
 
-Actualizamos añadiendo Lactic
+Actualizamos añadiendo Lactic por tener el menor p-valor.
 ```{r}
-model.updatei1 <- update(model.inicial, .~. + Lactic)
-add1(model.updatei1,scope=SCOPE,test="F")
+model.forward.lm <- update(model.forward.lm, .~. + Lactic)
+add1(model.forward.lm,scope=SCOPE,test="F")
 ```
 
 
-Con nivel de significación \alpha = 0.05 este sería nuestro modelo final.
+Con nivel de significación $\alpha$ = 0.05 este sería nuestro modelo final.
 
 ```{r}
-model.forward.lm<-lm(taste~Lactic, data= cheddar[train,])
+model.forward.lm
 ```
 Modelo resultante: **taste ~ Lactic.**
 
-#### Observación 
+### Observación 
 
-A este modelo, **taste ~ Lactic** le vamos a dar un nombre, posteriormente
-estudiaremos los problemas que presenta.
+A este modelo, **taste ~ Lactic** le vamos a dar un nombre, posteriormente estudiaremos los problemas que presenta.
 
 ```{r}
 model.final1 <- lm(taste ~ Lactic, data = cheddar[train,])
 ```
 
 
-#### 3.3 Construcción por criterios
+## Construcción por criterios
 
-En esta subsección trataremos de encontrar un candidato a mejor modelo,
-construyendo nuestros modelos usando distintos enfoques.
+En esta subsección trataremos de encontrar un candidato a mejor modelo, construyendo nuestros modelos usando distintos enfoques.
 
 
-##### 3.3.1 R2 ajustado
+### $R^2$ ajustado
+
+Es un criterio de optimización que se utiliza en la construcción de modelos, se basa en el estadísitico $R^2$.
 ```{r}
 models <- regsubsets(taste ~ ., data = cheddar[train,])
 summary(models)
@@ -351,7 +368,10 @@ summary(models)$which[which.max(MR2adj), ]
 ```
 Modelo resultante: **taste ~ H2S + Lactic.**
 
-##### 3.3.2 Cp de Mallows
+### Criterio de $C_p$ de Mallow
+
+Este criterio se basa en el estadístico de Mallow $C_p$.
+
 ```{r}
 MCp <- summary(models)$cp
 MCp
@@ -362,7 +382,7 @@ Modelo resultante: **taste ~ H2S + Lactic.**
 
 
 
-##### 3.3.3 Criterio de Informacion de Bayes (BIC)
+###  Criterio de Informacion de Bayes (BIC)
 ```{r}
 
 MBIC <- summary(models)$bic
@@ -373,7 +393,7 @@ summary(models)$which[which.min(MBIC), ]
 ```
 Modelo resultante: **taste ~ H2S + Lactic.**
 
-##### 3.3.4 Criterio de Informacion de Akaike (AIC)
+### Criterio de Informacion de Akaike (AIC)
 ```{r}
 stepAIC(model.all.lm, scope = SCOPE, k = 2)
 ```
@@ -388,9 +408,9 @@ anova(model.crit, model.all.lm)
 
 ```
 Con un valor de 0.3363 no podemos decir que los modelos sean signficativamente
-diferentes con ningún nivel \alpha habitual, interpretamos que el segundo modelo
+diferentes con ningún nivel $\alpha$ habitual, interpretamos que el segundo modelo
 aunque más simple, no es significativamente peor.
-#### Observación 
+## Observación 
 
 A este , **taste ~ H2S + Lactic** le vamos a dar un nombre, en la siguiente 
 sección lo estudiaremos con detalle.
@@ -399,7 +419,7 @@ sección lo estudiaremos con detalle.
 model.final2 <- lm(taste ~ H2S + Lactic, data = cheddar[train,])
 ```
 
-### 4. Diagnóstico
+# Diagnóstico
 
 En esta sección estudiaremos si nuestros *modelos* cumplen las condiciones
 necesarias de un modelo de regresión lineal.  
@@ -412,14 +432,14 @@ estadísticos en los casos en los que se aprecie una discrepancia notable.
 attach(cheddar)
 ```
 
-#### 4.1 ¿Son nuestros *modelos*, modelos de regresión lineal?: Comprobación de hipótesis.
+## ¿Son nuestros *modelos*, modelos de regresión lineal?: Comprobación de hipótesis.
 
 En la sección 3 se toma un enfoque *naïve* a la hora de construir los modelos,
 ya que no hemos estudiado si hay observaciones influyentes, podríamos tener una
 muestra que no es la adecuada para el estudio de nuestros datos.  
 
 Un modelo de regresión lineal debe satisfacer las siguientes hipótesis con nivel 
-de siginificación \alpha adecuado:
+de siginificación $\alpha$ adecuado:
 
 1. Los errores \(\epsilon_{i}\) tienen distribución normal.  
 2. Los errores \(\epsilon_{i}\) tienen media cero.  
@@ -428,9 +448,9 @@ de siginificación \alpha adecuado:
 
 
 
-##### 4.1.1 Estudios preliminares
+### Estudios preliminares
 
-##### Model.final1
+### Model.final1
 
 ```{r}
 plot(model.final1)
@@ -440,7 +460,7 @@ Observamos que este modelo tiene algunas características poco
 lineales, ya que en el primer plot hay una aparente ausencia de relación linea,
 lo comprobamos estadisiticamente.  
 
-##### Model.final2
+### Model.final2
 
 ```{r}
 plot(model.final2)
@@ -450,7 +470,7 @@ Observamos que este modelo tiene algunas características poco
 lineales, ya que en el segundo plot nuestros datos llegan a dispersarse
 considerablemente,lo comprobamos estadisiticamente.
 
-##### 4.1.2. Comprobación de hipótesis
+### Comprobación de hipótesis
 
 A fin de exponer con una mayor claridad los resultados y ahorrar espacio,
 recogemos los resultados de los tests en una tabla en la que observamos si se
@@ -494,16 +514,16 @@ hipótesis de un modelo de regresión lineal.
 Es interesante observar que los residuos del segundo modelo se ajustán mejor 
 a una normal y la variación de la autocorrelación al añadir un segundo predictor.  
 
-#### 4.2 *Outliers* y observaciones con leverage alto.  
+## *Outliers* y observaciones con leverage alto.  
 
 
 Anteriormente hemos tratado que nuestra muestra no contiene *outliers*.
 ¿Pasa lo mismo con las observaciones influyentes?  
 
 Realizamos un estudio de estos últimos a través de distintos criterios:
-#####4.2.1 Estuudio de model.final1
+### Estuudio de model.final1
 
-##### Criterio 1: valores leverage (hii) mayores que 2p/n
+### Criterio 1: valores leverage (hii) mayores que 2p/n
 
 ```{r}
 X <- model.matrix(~ H2S + Lactic, data = cheddar)
@@ -517,7 +537,7 @@ which(hii > hCV) # 6
 ```
 
 
-##### Criterio 2: valores |DFFITS| son mayores que 2*sqrt(p/n)
+### Criterio 2: valores |DFFITS| son mayores que 2*sqrt(p/n)
 
 ```{r}
 dffitsCV <- 2 * sqrt(3 / 30)
@@ -528,7 +548,7 @@ sum(dffitsmodel > dffitsCV)
 ```
 
 
-#####  Criterio 3: valores |DFBETAS| mayores que 2/sqrt(n)
+###  Criterio 3: valores |DFBETAS| mayores que 2/sqrt(n)
 
 ```{r}
 dfbetaCV <- 2 / sqrt(30)
@@ -544,7 +564,7 @@ which(dfbetamodel[, 1] > dfbetaCV)
 
 ```
 
-##### Conclusión observaciones influyentes
+### Conclusión observaciones influyentes
 
 Una vez hemos localizado estas observaciones, en este caso las hay, las
 retiramos de la muestra con el fin de tener una muestra adecuada para trabjar
@@ -557,7 +577,7 @@ cheese <- cheddar[-obs.out, ]
 Ahora ya estamos en condiciones de realizar un estudio adecuado de las
 condiciones de regresión lineal.
 
-#### 4.2 Estudio de modelos en la muestra revisada.
+## Estudio de modelos en la muestra revisada.
 
 
 ```{r}
@@ -604,9 +624,9 @@ coef(regfit.best, which.min(val.errors))
 ```
 Ligero cambio
 
-#### 4.2 Test de modelos
+## Test de modelos
 
-##### 4.2.1 Validacion cruzada de 1
+### Validacion cruzada de 1
 
 ```{r}
 n <- nrow(cheese)
@@ -638,7 +658,7 @@ coef(best.fit, which.min(mean.cv.errors))
 
 
 
-##### 4.2.2 Validacion en 4 grupos, cambiar la linea de k para otro numero
+### Validacion en 4 grupos, cambiar la linea de k para otro numero
 ```{r}
 
 n <- nrow(cheese)
@@ -666,7 +686,7 @@ mean.cv.errors
 coef(best.fit, which.min(mean.cv.errors))
 ```
 
-##### 4.2.2 Comprobaciones finales
+### Comprobaciones finales
 
 ```{r}
 model.cv <- lm(taste ~ H2S + Lactic, data = cheese)
@@ -686,10 +706,10 @@ Los residuos se comportan como una distribución normal de manera bastante clara
 ```{r}
 residualPlot(model.cv)
 ```
-### 5. Errores
+# Errores
 hay que moverlos aquí
 
-### 6.Conclusión
+# Conclusión
 
 Después de las comparaciones realizadas con respecto a nuestras comprobaciones
 cruzadas concluimos que el mejor modelo es **taste ~ Lactic**.
