@@ -1,13 +1,23 @@
 ---
-title: "Cheddar Faraway"
-output:
-  pdf_document: default
+title: "Regresión: Modelos Estadísticos"
+subtitle: |
+  | Conjunto de Datos: Cheddar Faraway
+author:
+  - name: "Daniel López Montero"
+  - name: "Rodrigo de la Nuez Moraleda"
+  - name: "Jose"
+  - name: "David"
+date: "25/03/2022"
+abstract:
+  Hemos analizado con las herramientas proporcionadas en el curso de Modelos Estadísticos el conjunto de datos, *Cheddar*, distribuido en la librería Faraway de R. Para ello hemos utilizado diversas técnicas de regresión lineal y   no lineal.
+output: 
   html_notebook: default
+  pdf_document: default
   html_document:
     df_print: paged
 ---
 
-### 1. Introducción
+# 1. Introducción
 
 En un estudio de queso Cheddar realizado en el Valle de Latrobe (Victoria, Australia), se estudiaron muestras de queso en las que se analizó su composición química y fueron dadas a probar a distintos sujetos para que valoraran su sabor. Los valores asignados a cada queso son el resultado de combinar las distintas valoraciones. 
 
@@ -27,23 +37,29 @@ la logarítmica
 
 **· Lactic:** Concentración de ácido láctico
 
-
-```{r}
+A lo largo del documento hacemos uso de las siguientes librerias de R:
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 library(faraway)
 library(leaps)
 library(MASS)
 library(PASWR)
 library(car)
 library(ggplot2)
+library(plyr)
 library(GGally)
 library(corrplot)
 library(plotly)
 library(scatterplot3d)
 library(cowplot)
+```
+
+Vamos a utilizar el dataset *Cheddar*. Lo descargamos y enseñamos las primeras observaciones.
+```{r}
 data(cheddar)
 head(cheddar)
 ```
-Comprobamos que no hay entradas vacias
+
+A continuación, comprobamos que no hay entradas vacias
 ```{r}
 any(is.na(cheddar))
 ```
@@ -66,9 +82,8 @@ test
 numObs <- dim(cheddar)[1]
 numObs
 ```
-Tenemos 30 observaciones, ¿Tenemos alguna en la que falten datos?
-¿Tenemos *outliers*?  
-Esto lo trataremos en la sección 4
+Tenemos 30 observaciones, ¿Podemos suponer que la distribución de las variables es normal?,¿Tenemos alguna en la que falten datos?, ¿Tenemos *outliers*?, etc.  
+Las anteriores preguntas las trataremos en las siguientes secciones.
 
 
 ```{r}
