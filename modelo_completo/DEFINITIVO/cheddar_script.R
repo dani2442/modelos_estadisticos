@@ -1,7 +1,7 @@
 #Autores:
-        # Daniel LÛpez Montero
+        # Daniel L√≥pez Montero
         # Rodrigo de la Nuez Moraleda
-        # JosÈ GarcÌa Rebollo
+        # Jos√© Garc√≠a Rebollo
         # David Parro Plaza
 install.packages("faraway")
 install.packages("leaps")
@@ -53,7 +53,7 @@ any(is.na(cheddar))
 # De haberlas habido, podriamos haber tomado las siguientes decisiones:
 #  - eliminar las observaciones con valores NA
 #  - eliminar variables si muchas de las entradas vacias aparecen en ella   
-#  - emplear mÈtodos para predecir que valores deberian apercer en dichas entradas
+#  - emplear m√©todos para predecir que valores deberian apercer en dichas entradas
 
 
 
@@ -74,19 +74,19 @@ plot(cheddar)
 layout(matrix(1:3, nrow = 1))
 
 plot(Acetic, taste,
-     main = "RelaciÛn entre Taste y Acetic",
+     main = "Relaci√≥n entre Taste y Acetic",
      xlab = "Acetic", ylab = "Taste",
      pch = 19, frame = FALSE)
 
 
 plot(H2S, taste,
-     main = "RelaciÛn entre Taste y H2S",
+     main = "Relaci√≥n entre Taste y H2S",
      xlab = "H2S", ylab = "Taste",
      pch = 19, frame = FALSE)
 
 
 plot(Lactic, taste,
-     main = "RelaciÛn entre Taste y Lactic",
+     main = "Relaci√≥n entre Taste y Lactic",
      xlab = "Lactic", ylab = "Taste",
      pch = 19, frame = FALSE)
 
@@ -118,9 +118,9 @@ anova(model.all)
 confint(model.all)
 
 # Observamos que 0 esta en el intervalo de confianza de beta_0 y beta_Acetic, planteamos dos tests
-#    con hipÛtesis nula beta_i = 0 y hipotesis alternativa beta_i != 0.
+#    con hip√≥tesis nula beta_i = 0 y hipotesis alternativa beta_i != 0.
 
-# Comenzamos con beta_Acetic pues el valor estimado es m·s cercano a 0 que el de beta_0
+# Comenzamos con beta_Acetic pues el valor estimado es m√°s cercano a 0 que el de beta_0
 modnoAcetic <- lm(taste ~ H2S + Lactic, data=cheddar)
 anova(modnoAcetic,model.all) # no solo el p-valor > 0.05 sino que de hecho p-valor ~ 1, aceptamos la hipotesis nula.
 
@@ -190,7 +190,7 @@ resettest(model.all_15, power=2:3, type="regressor", data=cheddar)# empeora
 
 # Separacion del dataset en conjuntos de entrenamiento y test (70-30%)
 
-# Hemos considerado varias semillas para abarcar m·s modelos. Adem·s, hemos intentado evitar 
+# Hemos considerado varias semillas para abarcar m√°s modelos. Adem√°s, hemos intentado evitar 
 #  en la medida de lo poible que se repitan muchos elementos en los distintos conjuntos de test seleccionados.
 
 set.seed(1) 
@@ -249,11 +249,11 @@ SCOPE <- (~ . + Acetic + H2S + Lactic)
 model.inicial <- lm(taste ~ 1, data = cheddar[train.1,]) # solo con termino independiente
 
 add1(model.inicial, scope = SCOPE, test = "F")
-# AÒadimos Lactic por ser la variable predictora con menor p-valor
+# A√±adimos Lactic por ser la variable predictora con menor p-valor
 model.updateF1 <- update(model.inicial, . ~ . + Lactic)
 
 add1(model.updateF1, scope = SCOPE, test = "F")
-# No aÒadimos ninguna variable pues todos los p-valores superan la barrera de alpha
+# No a√±adimos ninguna variable pues todos los p-valores superan la barrera de alpha
 
 model.1a <- lm(taste ~ Lactic, data = cheddar[train.1,])
 summary(model.1a)
@@ -269,7 +269,7 @@ summary(model.2a) # H2S + LACTIC
 model.3a <- mixlm::forward(model.all3, alpha=0.05)
 summary(model.3a) # H2S + LACTIC
 
-# NÛtese que los modelos obtenidos por BACKWARD y FORWARD coinciden para cada conjunto train.
+# N√≥tese que los modelos obtenidos por BACKWARD y FORWARD coinciden para cada conjunto train.
 
 
 
@@ -351,7 +351,7 @@ resettest(model.1, power=2:3, type="regressor", data=cheddar[train.1,])
 resettest(model.1crit, power=2:3, type="regressor", data=cheddar[train.1,]) 
 resettest(model.2, power=2:3, type="regressor", data=cheddar[train.2,]) 
 resettest(model.3, power=2:3, type="regressor", data=cheddar[train.3,]) 
-# p-valores > 0.05 luego aceptamos hipÛtesis de linealidad en todos los casos
+# p-valores > 0.05 luego aceptamos hip√≥tesis de linealidad en todos los casos
 
 plot(cheddar$H2S, cheddar$taste,
      main = "Relacion entre Taste y H2S",
@@ -366,7 +366,7 @@ plot(cheddar$Lactic, cheddar$taste,
 
 # Normalidad y Autocorrelacion
 
-shapiro.test(resid(model.1)) # p-valor > 0.05 no se rechaza la hipÛtesis nula, i.e. la normalidad
+shapiro.test(resid(model.1)) # p-valor > 0.05 no se rechaza la hip√≥tesis nula, i.e. la normalidad
 qqnorm(resid(model.1))
 qqline(resid(model.1))
 
@@ -382,9 +382,9 @@ shapiro.test(resid(model.3))#bien
 qqnorm(resid(model.3))
 qqline(resid(model.3))
 
-# Observamos que las colas no siguen el mismo patrÛn que el resto de datos, lo que podrÌa indicar que 
-#  el modelo no sigue una distribuciÛn normal. Sin embargo, al no afectar a un gran porcentaje de los datos y
-#  teniendo en cuenta el resultado previo obtenido por el Test de Shapiro-Wilk no rechazamos la hipÛtesis de normalidad.
+# Observamos que las colas no siguen el mismo patr√≥n que el resto de datos, lo que podr√≠a indicar que 
+#  el modelo no sigue una distribuci√≥n normal. Sin embargo, al no afectar a un gran porcentaje de los datos y
+#  teniendo en cuenta el resultado previo obtenido por el Test de Shapiro-Wilk no rechazamos la hip√≥tesis de normalidad.
 
 
 # Media de errores nula
@@ -430,7 +430,7 @@ plot(X1, Y1, ylab = "Residuos estandarizados", xlab = "valores ajustados")
 plot(X1crit, Y1crit, ylab = "Residuos estandarizados", xlab = "valores ajustados")
 plot(X2, Y2, ylab = "Residuos estandarizados", xlab = "valores ajustados")#casi casi hay patron
 plot(X3, Y3, ylab = "Residuos estandarizados", xlab = "valores ajustados")
-# Los residuos se distribuyen de forma homogÈnea a lo largo de una banda horizontal, luego se verifica la hipÛtesis nula
+# Los residuos se distribuyen de forma homog√©nea a lo largo de una banda horizontal, luego se verifica la hip√≥tesis nula
 
 
 ncvTest(model.1) 
@@ -571,7 +571,7 @@ sum(dfbetamodel3[, 3] > dfbetaCV3)
 which(dfbetamodel3[, 1] > dfbetaCV3)
 which(dfbetamodel3[, 3] > dfbetaCV3)
 
-# Dado que nuestro datset es pequeÒo, no tendremso en cuenta este metodo por dar demasiadas observaciones.
+# Dado que nuestro datset es peque√±o, no tendremso en cuenta este metodo por dar demasiadas observaciones.
 
 
 # Grafica con las distancias de Cook
@@ -863,7 +863,7 @@ durbinWatsonTest(m5inf) # no se verifica la hipotesis nula de no autocorrelacion
 resettest(m5, power=2:3, type="regressor", data=cheddar[train.5inf,]) 
 resettest(m5inf, power=2:3, type="regressor", data=cheddar[train.5inf,]) # empeora
 
-# Decidimos no cambiarlo por perderse la correlaciÛn
+# Decidimos no cambiarlo por perderse la correlaci√≥n
 
 # Notese que en los originales siempre se cumplian las hipotesis, aunque no era necesario para el proceso
 
@@ -887,10 +887,10 @@ modelos_hip <- c("S1 taste ~ H2s + Lactic",
                  "S5 taste ~ Lactic",
                  "Nivel de significacion")
 
-hip_RL <- c("DistribuciÛn_normal",
+hip_RL <- c("Distribuci√≥n_normal",
             "Media_0",
             "Varianza_no_constante",
-            "No_AutocorrelaciÛn")
+            "No_Autocorrelaci√≥n")
 placeholder <- vector(mode = "logical",length = 11)
 df_hipRL <- data.frame("0" = placeholder,
                        "1" = placeholder,
@@ -935,7 +935,7 @@ for (dtrain in lista_train){
   r = r + 2
 }
 df_hipRL[11,] <- c(rep(0.05,4))
-df_hipRL # Todos los modelos cumplen las hipÛtesis
+df_hipRL # Todos los modelos cumplen las hip√≥tesis
 
 
 
@@ -981,7 +981,7 @@ outlierTest(model.y)
 influencePlot(model.y)
 
 
-# Estudio de hipÛtesis supuestas
+# Estudio de hip√≥tesis supuestas
 
 shapiro.test(resid(model.y)) # normalidad de residuos
 t.test(resid(model.y), mu = 0, alternative = "two.sided") # media cero de los residuos
@@ -989,7 +989,7 @@ ncvTest(model.y) # varianza constante de los residuos
 durbinWatsonTest(model.y) # no autocorrelacion
 resettest(model.y ,power=2:3, type="regressor", data=cheddar) # linealidad
 
-# Efectivamente, cumple todas las hipÛtesis
+# Efectivamente, cumple todas las hip√≥tesis
 
 
 summary(model.y) # en el summary observamos los valores de betahat, sus p-valores y sigma
@@ -1024,7 +1024,7 @@ dimnames(SchSimCI) <- list(bnam, conf)
 SchSimCI
 
 
-# La ecuaciÛn de nuestro modelo final es y = (-27.6) + 3.95*x_H + 19.9*x_L,
+# La ecuaci√≥n de nuestro modelo final es y = (-27.6) + 3.95*x_H + 19.9*x_L,
 #    donde x_H y x_L denotan los valores observados de H2S y Lactic.
 
 
@@ -1050,7 +1050,7 @@ Radj <-1-MSE/MST
 Radj  # se comprueba en la tabla summary que el valor es correcto
 
 
-# Observamos como se distribuye la variable taste en funciÛn de H2S y Lactic
+# Observamos como se distribuye la variable taste en funci√≥n de H2S y Lactic
 plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", mode="marker", color=taste) %>% 
   layout(scene = list(xaxis = list(title = 'H2S (%)'),
                       yaxis = list(title = 'Lactic (%)'),
