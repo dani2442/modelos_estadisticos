@@ -1,8 +1,9 @@
-#Autores:
-        # Daniel López Montero
-        # Rodrigo de la Nuez Moraleda
-        # José García Rebollo
-        # David Parro Plaza
+# Autores:
+#  Daniel López Montero
+#  Rodrigo de la Nuez Moraleda
+#  José García Rebollo
+#  David Parro Plaza
+
 install.packages("faraway")
 install.packages("leaps")
 install.packages("MASS")
@@ -53,7 +54,7 @@ any(is.na(cheddar))
 # De haberlas habido, podriamos haber tomado las siguientes decisiones:
 #  - eliminar las observaciones con valores NA
 #  - eliminar variables si muchas de las entradas vacias aparecen en ella   
-#  - emplear métodos para predecir que valores deberian apercer en dichas entradas
+#  - emplear métodos para predecir que valores deberian aparecer en dichas entradas
 
 
 
@@ -130,7 +131,7 @@ anova(modnoInterceptor,model.all) # el p-valor es menor que 0.05, luego no es su
 
 # Veamos los p-valores de las variables predictoras
 summary(model.all)$coeff[,4] 
-# Observamso que el p-valor de Acetic es el mas elevado, este resultado junto con el contrate de hipotesis que hemos hecho
+# Observamos que el p-valor de Acetic es el mas elevado, este resultado junto con el contrate de hipotesis que hemos hecho
 #  podemos deducir que la variable Acetic no sera muy relevante para el estudio de los distintos modelos que estudiaremos.
 
 
@@ -143,7 +144,7 @@ corrplot(mat_cor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 4
 
 
 # Por ultimo veamos si hay outliers en el modelo completo
-Model.all<-fortify(model.all)
+Model.all <- fortify(model.all)
 outlierTest(model.all) # no los hay
 
 # Por el metodo de Bonferroni
@@ -159,7 +160,7 @@ sort(abs(rstandard(model.all)),decreasing = TRUE)[1:3] # estos valores estan rel
 influenceIndexPlot(model.all) # en la tercera grafica se ve que la observacion 15 tiene un comportamiento anormal
 
 # Comprobemos si los supuestos de los modelos de regresion lineal mejoran al retirar esta observacion
-#  de nuestro dataset. De ser asi, aceptamos que pueda ser una observacion que pejudique a nuestro modelo.
+#  de nuestro dataset. De ser asi, aceptamos que pueda ser una observacion que perjudique a nuestro modelo.
 model.all_15<- lm(taste ~ ., data = cheddar[-15,])
 
 # Homocedasticidad
@@ -168,15 +169,15 @@ ncvTest(model.all_15) # empeora
 
 # Normalidad
 shapiro.test(resid(model.all))
-shapiro.test(resid(model.all_15))# mejora
+shapiro.test(resid(model.all_15)) # mejora
 
 # Autocorrelacion
 durbinWatsonTest(model.all)
-durbinWatsonTest(model.all_15)# mejora
+durbinWatsonTest(model.all_15) # mejora
 
 # Linealidad
 resettest(model.all, power=2:3, type="regressor", data=cheddar) 
-resettest(model.all_15, power=2:3, type="regressor", data=cheddar)# empeora
+resettest(model.all_15, power=2:3, type="regressor", data=cheddar) # empeora poco
 
 # En el computo global no parece que los p-valores de estos tests den a entender una mejoria general del modelo.
 #  Si bien es cierto, tampoco los empeora y dependiendo del criterio a seguir podriamos decidir si es relevante o no.
@@ -191,7 +192,7 @@ resettest(model.all_15, power=2:3, type="regressor", data=cheddar)# empeora
 # Separacion del dataset en conjuntos de entrenamiento y test (70-30%)
 
 # Hemos considerado varias semillas para abarcar más modelos. Además, hemos intentado evitar 
-#  en la medida de lo poible que se repitan muchos elementos en los distintos conjuntos de test seleccionados.
+#  en la medida de lo posible que se repitan muchos elementos en los distintos conjuntos de test seleccionados.
 
 set.seed(1) 
 train.1 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
@@ -269,7 +270,7 @@ summary(model.2a) # H2S + LACTIC
 model.3a <- mixlm::forward(model.all3, alpha=0.05)
 summary(model.3a) # H2S + LACTIC
 
-# Nótese que los modelos obtenidos por BACKWARD y FORWARD coinciden para cada conjunto train.
+# Notese que los modelos obtenidos por BACKWARD y FORWARD coinciden para cada conjunto train.
 
 
 
@@ -382,9 +383,9 @@ shapiro.test(resid(model.3))#bien
 qqnorm(resid(model.3))
 qqline(resid(model.3))
 
-# Observamos que las colas no siguen el mismo patrón que el resto de datos, lo que podría indicar que 
-#  el modelo no sigue una distribución normal. Sin embargo, al no afectar a un gran porcentaje de los datos y
-#  teniendo en cuenta el resultado previo obtenido por el Test de Shapiro-Wilk no rechazamos la hipótesis de normalidad.
+# Observamos que las colas no siguen el mismo patron que el resto de datos, lo que podria indicar que 
+#  el modelo no sigue una distribucion normal. Sin embargo, al no afectar a un gran porcentaje de los datos y
+#  teniendo en cuenta el resultado previo obtenido por el Test de Shapiro-Wilk no rechazamos la hipotesis de normalidad.
 
 
 # Media de errores nula
@@ -501,7 +502,7 @@ hCV2 <- 2 * p2 / n2
 hCV3 <- 2 * p3 / n3
 
 sum(hii1 > hCV1)
-which(hii1>hCV1)#1  5 16 23 24 26 
+which(hii1>hCV1) # 1 5 16 23 24 26 
 
 sum(hii1crit > hCV1crit)
 which(hii1crit>hCV1crit)
@@ -525,10 +526,10 @@ dffitsmodel2 <- dffits(model.2)
 dffitsmodel3 <- dffits(model.3)
 
 sum(dffitsmodel1 > dffitsCV1)
-which(dffitsmodel1 > dffitsCV1)#1 12 24 
+which(dffitsmodel1 > dffitsCV1) # 1 12 24 
 
 sum(dffitsmodel1crit > dffitsCV1crit)
-which(dffitsmodel1crit > dffitsCV1crit)#1, 12
+which(dffitsmodel1crit > dffitsCV1crit) # 1 12
 
 sum(dffitsmodel2 > dffitsCV2)
 sum(dffitsmodel3 > dffitsCV3)
@@ -571,7 +572,7 @@ sum(dfbetamodel3[, 3] > dfbetaCV3)
 which(dfbetamodel3[, 1] > dfbetaCV3)
 which(dfbetamodel3[, 3] > dfbetaCV3)
 
-# Dado que nuestro datset es pequeño, no tendremso en cuenta este metodo por dar demasiadas observaciones.
+# Dado que nuestro datset es pequeño, no tendremos en cuenta este metodo por dar demasiadas observaciones.
 
 
 # Grafica con las distancias de Cook
@@ -1063,3 +1064,6 @@ planereg <- scatterplot3d(x=H2S, y=Lactic, z=taste, pch=16, cex.lab=1,
                           highlight.3d=TRUE, type="h", xlab='H2S (%)',
                           ylab='Lactic (%)', zlab='Taste (0-100)')
 planereg$plane3d(model.y, lty.box="solid", col='mediumblue')
+
+
+
