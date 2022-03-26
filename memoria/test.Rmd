@@ -858,3 +858,95 @@ En este modelo, bajo el criterio de elección de observaciones influyentes que e
 # COMPLETAR TABLA OUTLIERS
 ```
 
+# Conclusión: presentación del modelo final
+
+Finalmente por comparación de los errores sabemos que el modelo final que presenatmos es: taste ~ H2S + Lactic , que tiene sentido ya que Acetic no era significativa y que en la construcción de modelos salieron en todos los criterios salvo en uno este modelo.
+
+<!-- aqui hacerlo tabla con lo que me interesa -->
+```{r echo=FALSE}
+model.y <- lm(taste ~ H2S + Lactic,data=cheddar) 
+summary(model.y)
+# df<-data.frame("1"=)
+```
+A su vez enseñamos los graficos de este modelo:
+```{r echo=FALSE, render=lemon_print}
+plot(model.y)
+```
+
+Ahora vamos a asegurarnos que verifica las hipótesis para una regresión lineal y nos aseguramos con outlierTest  que no tenemos outliers.
+Y además de hacer una hipótesis de la media de los errores y ver que su varianza es constante, calculamos dicha varianza.
+<!-- Aqui debería ir tabla con pvalues de normalidad.... -->
+```{r echo=FALSE}
+df_pval_drop_p1 <- data.frame("1" = rep(0,1),"2" = rep(0,1),"3" = rep(0,1),"4" = rep(0,1),"5" = rep(0,1),"6" = rep(0,1),"7" = rep(0,1),
+                              row.names=c("model.y"))
+colnames(df_pval_drop_p1) <-    c("p-Outliers","p-Normalidad","p-Media nula","p-Homocedasticidad","Valor de varianza","p-Autocorrelación","p-Linealidad")
+df_pval_drop_p1[,1] <- outlierTest(model.y)$p
+df_pval_drop_p1[,2] <- shapiro.test(resid(model.y))$p
+df_pval_drop_p1[,3] <- t.test(resid(model.y),mu=0,alternative = "two.sided")$p.value
+df_pval_drop_p1[,4] <- ncvTest(model.y)$p
+df_pval_drop_p1[,5] <- sqrt(deviance(model.y)/df.residual(model.y))
+df_pval_drop_p1[,6] <- durbinWatsonTest(model.y)$p
+df_pval_drop_p1[,7] <- resettest(model.y, power=2:3, type="regressor", data=cheddar)$p.value
+df_pval_drop_p1
+```
+
+Dicho esto procedemos a la presentación del modelo con sus betas asociados, que si bien se pueden recoger del summary, también se pueden calcular de forma matricial igual que se hizo con el modelo completo en su momento.
+
+El resultado sería **taste ~ -27.591815 +3.9946267 H2S +19.887204 Lactic**
+Notese que sigue siendo acorde al modelo completo donde el $ \beta$ de Lactic es muy superior en comparación al de H2S.
+
+Presentamos ahora R^2^ y R^2^_adj_, estas si bien se pueden recojer directamente del summary, también las calculamos a partir de los errores y la tabla anova, dando el resultado de 0.6517024 y 0.6259025 respectivamente. Además presentamos el vector de p-valores
+
+<!-- Aqui iria un tabla que presente todo ello -->
+```{r echo=FALSE}
+summary(model.y)$coeff[,4]
+```
+
+
+También presentamos intervalos para las betas de Bonferroni y Scheffé, así como sus elipsoides
+<!-- Aqui va eso -->
+```{r echo=FALSE}
+alpha <- 0.10
+b <- summary(model.y)$coef[2:3, 1]
+s.b <- summary(model.y)$coef[2:3, 2]
+g <- 3
+n <- nrow(cheddar)
+p <- ncol(summary(model.y)$coef)
+t_teo <- qt(1 - alpha / (2 * g), n - p)
+BomSimCI <- matrix(c(b - t_teo * s.b, b + t_teo * s.b), ncol = 2)
+conf <- c("5%", "95%")
+bnam <- c("H2S", "Lactic")
+dimnames(BomSimCI) <- list(bnam, conf)
+# BomSimCI
+c1<-BomSimCI[1,]
+c2<-BomSimCI[2,]
+Q <- p - 1
+f_teo <- qf(0.9, Q, n - p)#0.9 no seria 0.95?
+SchSimCI <- matrix(c(b - sqrt(Q * f_teo) * s.b, b + sqrt(Q * f_teo) * s.b), ncol = 2)
+conf <- c("5%", "95%")
+bnam <- c("H2S", "Lactic")
+dimnames(SchSimCI) <- list(bnam, conf)
+# SchSimCI
+d1<-SchSimCI[1,]
+d2<-SchSimCI[2,]
+df_pval_drop_p1 <- data.frame("1" = rep(0,3),"2" = rep(0,3),"3" = rep(0,3),"4" = rep(0,3),
+                              row.names=c("H2S","Lactic","Porcentaje"))
+colnames(df_pval_drop_p1) <-    c("Bonferroni","Bonferroni","Scheffé","Scheffé")
+df_pval_drop_p1[1,] <- c(c1,d1)
+df_pval_drop_p1[2,] <- c(c2,d2)
+df_pval_drop_p1[3,] <- c("5%","95%","5%","95%")
+df_pval_drop_p1
+```
+Y finalmente buscamos una representación de la regresión que tenemos en 3 dimensiones ya que el modelo completo tenia tres variables y vemos el plano de regresión, marcando en rojo las observaciones que peor se ajustan.
+<!-- Aqui va eso, si lo puede oner otro mejor, pq a mi hay una grafica que no se me ejecuta -->
+
+```{r echo =FALSE}
+plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", mode="marker", color=taste) %>% 
+  layout(scene = list(xaxis = list(title = 'H2S (%)'),
+                      yaxis = list(title = 'Lactic (%)'),
+                      zaxis = list(title = 'Taste (0-100)')))
+planereg <- scatterplot3d(x=H2S, y=Lactic, z=taste, pch=16, cex.lab=1,
+                          highlight.3d=TRUE, type="h", xlab='H2S (%)',
+                          ylab='Lactic (%)', zlab='Taste (0-100)')
+planereg$plane3d(model.y, lty.box="solid", col='mediumblue')
+```
