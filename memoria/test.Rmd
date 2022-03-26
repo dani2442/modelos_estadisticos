@@ -126,7 +126,6 @@ Hacemos un pequeño estudio preliminar de nuestras variables. Mostramos un scatt
 
 ```{r echo=FALSE,,fig.width=7,fig.height=4}
 plot(cheddar)
-
 ```
   
   Ahora, utilizamos la funcón *summary* de R, la cual nos permite estimar algunos de las características de la distribución del dataset. La siguiente tabla nos muestra los estadísticos más comunes: el mínimo, máximo, mediana, media y el 1er y 3er cuartil. 
@@ -146,19 +145,16 @@ Ploteamos las gráficas de dispersion entre la variable respuesta *taste* y las 
 
 ```{r echo=FALSE,fig.width=7,fig.height=3}
 layout(matrix(1:3, nrow = 1))
-
 # plot taste ~ Acetic
 plot(Acetic, taste,
      main = "Relación entre Taste y Acetic",
      xlab = "Acetic", ylab = "Taste",
      pch = 20, frame = FALSE)
-
 # plot taste ~ H2S
 plot(H2S, taste,
      main = "Relación entre Taste y H2S",
      xlab = "H2S", ylab = "Taste",
      pch = 20, frame = FALSE)
-
 # plot taste ~ Lactic
 plot(Lactic, taste,
      main = "Relaciónn entre Taste y Lactic",
@@ -214,9 +210,20 @@ $$
 taste \sim Acetic \, + \, H2S \, + \, Lactic, \,  \, data = cheddar
 $$
 
-```{r echo=FALSE}
+```{r echo=FALSE, render=lemon_print}
 model.all.lm <- lm(taste ~ ., data = cheddar)
-model.all.lm$coefficients # Coeficientes del modelo completo
+
+fila_coef <- vector()
+df_anova <- data.frame("1" = 1, "2" = 2,"3" = 3,"4"=4, row.names = "Coeficientes")
+colnames(df_anova) <- c("Intercept","Acetic","H2S","Lactic")
+
+for(i in 1:4){
+fila_coef <- c(fila_coef,model.all.lm$coefficients[[i]])  
+}
+
+df_anova[1,] <- fila_coef
+df_anova
+
 ```
 Evidentemente los resultados son los mismos.
 
@@ -226,7 +233,6 @@ comprobaremos las hipótesis estándar del modelo lineal de regresión usando el
 
 ```{r include=FALSE}
 shapiro.test(resid(model.all.lm))
-
 ```
 Observamos que estamos en la hipótesis de que el error nuestro modelo se distribuye de manera normal, ya que el p-valor es $0.8865 > 0.05$. 
 
@@ -299,14 +305,12 @@ train.1 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c
 test.1 <- (!train.1)
 sum(test.1)
 model.all1 <- lm(taste ~ ., data = cheddar[train.1,])
-
 set.seed(1100) 
 train.2 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
 test.2 <- (!train.2)
 sum(test.2)
 sum(test.1==TRUE & test.2==TRUE)#solo 1 preseguimos
 model.all2 <- lm(taste ~ ., data = cheddar[train.2,])
-
 set.seed(5) 
 train.3 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
 test.3 <- (!train.3)
@@ -415,13 +419,8 @@ anova(model.1,model.all1)
 df_pval_drop_p1 <- data.frame("1" = 1, "2" = 2,"3" = 3,"4"= 4, row.names = "p-valor")
 colnames(df_pval_drop_p1) <- c("train1: L vs Completo","train1: H2S + L vs Completo","train2: H2S + L vs Completo", "train1: H2S+ L vs Completo")
 df_pval_drop_p1[1,] <- fila_pvalores
-
 df_pval_drop_p1                   
                    
-
-
-
-
 ```
 
 Con un estos p-valores podemos decir que con un nivel de significación $\alpha$ ningún modelo es notablemente diferente de su contraparte salvo en el caso de los modelos resultantes en *train2* esto puede ser por la cantidad de observaciones influyentes presentes en la muestra, lo trataremos en la siuigente sección.  
@@ -453,27 +452,21 @@ de siginificación $\alpha$ adecuado:
 
 ```{r include=FALSE}
 alfan <- 0.05
-
 fila_linealidad <- c(round(resettest(model.1, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
                      round(resettest(model.1crit, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
                      round(resettest(model.2, power=2:3, type="regressor", data=cheddar[train.2,])$p.value,3),
                      round(resettest(model.3, power=2:3, type="regressor", data=cheddar[train.3,])$p.value,3),
                      alfan,"Resettest")
-
-
 fila_normalidad <- c(round(shapiro.test(resid(model.1))$p.value,3),
                      round(shapiro.test(resid(model.1crit))$p.value,3),
                      round(shapiro.test(resid(model.2))$p.value,3),
                      round(shapiro.test(resid(model.3))$p.value,3),
                      alfan, "Test Shapiro Wilk")
-
 fila_mediaO <- c(t.test(resid(model.1), mu = 0, alternative = "two.sided")$p.value,
                  t.test(resid(model.1crit), mu = 0, alternative = "two.sided")$p.value,
                  t.test(resid(model.2), mu = 0, alternative = "two.sided")$p.value,
                  t.test(resid(model.3), mu = 0, alternative = "two.sided")$p.value,
                  alfan, "t-test")
-
-
 fila_var_cte <- c(round(ncvTest(model.1)$p,3),
                   round(ncvTest(model.1crit)$p,3),
                   round(ncvTest(model.2)$p,3),
@@ -486,7 +479,6 @@ fila_corr <- c(durbinWatsonTest(model.1)$p,
                durbinWatsonTest(model.2)$p,
                durbinWatsonTest(model.3)$p,
                alfan,"Test de Durbin-Watson")
-
  
 df_pval_drop_p1 <- data.frame("1" = rep(0,5),"2" = rep(0,5),"3" = rep(0,5),"4"= rep(0,5), "5"= rep(0,5), "6" = rep(0,5),
                                                                              row.names =c("Linealidad",
@@ -494,7 +486,6 @@ df_pval_drop_p1 <- data.frame("1" = rep(0,5),"2" = rep(0,5),"3" = rep(0,5),"4"= 
                                                                                           "Media = 0",
                                                                                           "Varianza constante",
                                                                                           "Correlación"))
-
 colnames(df_pval_drop_p1) <-    c("train1: L","train1: H2S + L",
                                   "train2: H2S + L",
                                   "train3: H2S + L",
@@ -507,7 +498,6 @@ df_pval_drop_p1[2,] <- fila_normalidad
 df_pval_drop_p1[3,] <- fila_mediaO
 df_pval_drop_p1[4,] <- fila_var_cte
 df_pval_drop_p1[5,] <- fila_corr
-
 ```
 
 
@@ -516,11 +506,20 @@ df_pval_drop_p1
 ```
 
 
-Podemos observar que se verifican a nivel de signifcación $\alpha$ = 0.05 se verifican todas las hopótesis de modelo de refresión lineal.
+Podemos observar que se verifican a nivel de signifcación $\alpha$ = 0.05 se verifican todas las hopótesis de modelo de regresión lineal. En las siguientes gráficas podemos obsrevar como los residuos de los modelos **taste ~ H2S + L** de los conjuntos *train2* y *train3* se comportan mejor que cualquiera de los modelos propuestos en la muestra *train1*
 
-```{r}
-#PENDIENTE: qqplot qqnorm en grid de 2x2
+```{r echo=FALSE}
+par(mfrow=c(2,2))
+qqnorm(resid(model.1))
+qqline(resid(model.1))
+
+qqnorm(resid(model.1crit))
+qqline(resid(model.1crit))
+
+qqnorm(resid(model.2))
+qqline(resid(model.2))
+
+qqnorm(resid(model.3))
+qqline(resid(model.3))
+
 ```
-
-
-
