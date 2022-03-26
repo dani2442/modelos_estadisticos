@@ -450,7 +450,7 @@ de siginificación $\alpha$ adecuado:
 3. Los errores \(\epsilon_{i}\) tienen varianza constante.  
 4. Los errores \(\epsilon_{i}\) no están correlacionados.  
 
-```{r include=FALSE}
+```{r include=FALSE, render=lemon_print}
 alfan <- 0.05
 fila_linealidad <- c(round(resettest(model.1, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
                      round(resettest(model.1crit, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
@@ -491,8 +491,7 @@ colnames(df_pval_drop_p1) <-    c("train1: L","train1: H2S + L",
                                   "train3: H2S + L",
                                   "Nivel de siginificación",
                                   "Test utilizado")
-df_pval_drop_p1
-fila_linealidad
+
 df_pval_drop_p1[1,] <- fila_linealidad
 df_pval_drop_p1[2,] <- fila_normalidad
 df_pval_drop_p1[3,] <- fila_mediaO
@@ -523,3 +522,127 @@ qqnorm(resid(model.3))
 qqline(resid(model.3))
 
 ```
+
+## Estudio de outliers
+
+A fin de obtener distintos puntos de vista utilizaremos dos métodos, un valor de Bonferroni en un estadístico $t_{1-\frac{\alpha}{2n};n-p-1}$ y la función *outlierTest* que utiliza p-valores de Bonferroni obtenidos a través de t-tests.  
+
+En los cuatro modelos y bajo los dos criterios no se obtiene ninguna observación que se pueda aceptar como *outlier* a nivel de significación $\alpha$ = 0.05
+
+```{r include=FALSE}
+signi <- 0.05
+
+n1<-nrow(cheddar[train.1,])
+p1 <-nrow(summary(model.1)$coef)
+
+
+n1crit<-nrow(cheddar[train.1,])
+p1crit <-nrow(summary(model.1crit)$coef)
+
+n2<-nrow(cheddar[train.2,])
+p2 <-nrow(summary(model.2)$coef)
+
+n3<-nrow(cheddar[train.3,])
+p3 <-nrow(summary(model.3)$coef)
+
+BCV1 <- qt(1 - signi / (2 * n1), n1-p1-1) 
+BCV1crit <- qt(1 - signi / (2 * n1crit), n1crit-p1crit-1) 
+BCV2 <- qt(1 - signi / (2 * n2), n2-p2-1) 
+BCV3 <- qt(1 - signi / (2 * n3), n3-p3-1) 
+
+sum(abs(rstudent(model.1)) > BCV1)
+sum(abs(rstudent(model.1crit)) > BCV1crit)
+sum(abs(rstudent(model.2)) > BCV2)
+sum(abs(rstudent(model.3)) > BCV3)
+
+
+outlierTest(model.1)
+outlierTest(model.1crit)#NA?
+outlierTest(model.2) # no hay en ninguno de los dos modelos planteados
+outlierTest(model.3)
+
+```
+## Estudio de observaciones Influyentes
+
+Al igual que en la anterior sección a fin de poder encontrar el criterio que mejor se ajuste a nuestro modelo, en el que hay que tener en cuenta que es una muestra de tamaño reducido, utilizaremos tres criterios, además de distintas técnicas gráficas. Los criterios usados serán:  
+1.Criterio 1: valores leverage (hii) mayores que $\frac{2p}{n}$.  
+2.Criterio 2: valores |DFFITS| son mayores que $2 \cdot \sqrt{\frac{2p}{n}}$.  
+
+3.Criterio 3: valores |DFBETAS| mayores que $2 \cdot \sqrt{\frac{2p}{n}}$.  
+
+4.Criterio 4: *InfluencePlot*.
+
+En la siguiente tabla observamos las observaciones influyebtes obtenidas por cada criterio.
+
+```{r echo=FALSE, render=lemon_print}
+
+df_pval_drop_p1 <- data.frame("1" = rep(0,4),"2" = rep(0,4),"3" = rep(0,4),
+                              row.names =c("train1: L","train1: H2S + L",
+                                  "train2: H2S + L",
+                                  "train3: H2S + L"))
+
+fila_c1 <- c("1,5,16,23,24,26", "1,12,24","1,3,5,8,9,12,13,14,16,19,23,24,27,28,30")
+fila_c2 <- c("23", "12", "COMPLETAR")
+fila_c3 <- c("6","COMPLETAR" , "COMPLETAR")
+fila_c4 <- c("COMPLETAR","COMPLETAR","COMPLETAR")
+colnames(df_pval_drop_p1) <- c("Criterio 1","Criterio 2","Criterio 3")
+
+df_pval_drop_p1[1,] <- fila_c1
+df_pval_drop_p1[2,] <- fila_c2
+df_pval_drop_p1[3,] <- fila_c3
+df_pval_drop_p1[4,] <- fila_c4
+df_pval_drop_p1
+```
+
+Evidentemente el criterio 3 no es adecuado para nuestra muestra, la muestra resultante sería demasiado pequeña para ser apta para la regresión lineal. Tomaremos como criterio para eliminar de la muestra aquellas observaciones que hayan sido marcadas como influyentes en al menos dos criterios de influyentes.
+
+```{r echo=FALSE, fig.height=3.5, fig.width=6}
+
+par(mfrow=c(1,2))
+p1 <- influencePlot(model.1)
+pos_influyentes_1 <- c(1,12,24)
+
+p2 <-influencePlot(model.1crit)
+pos_influyentes_1crit <- c(1,8,12,23)
+
+
+
+```
+```{r echo=FALSE, fig.height=3.5, fig.width=6}
+par(mfrow=c(1,2))
+p3 <-influencePlot(model.2)
+pos_influyentes_2 <- c(1,6,7,8,15)
+
+
+p4 <-influencePlot(model.3)
+pos_influyentes_3 <- c(1,7,15,19,24)
+```
+
+
+Estas observaciones también serán usadas a la hora de decidir las que consideramos influyentes. De esta forma consideraríamos influyentes las siguientes observaciones:
+
+```{r echo=FALSE, render=lemon_print}
+df_pval_drop_p1 <- data.frame("1" =rep(0,4),
+                              row.names =c("train1: L","train1: H2S + L",
+                                  "train2: H2S + L",
+                                  "train3: H2S + L"))
+
+fila_c1 <- c("1,12")
+fila_c2 <- c("1,12,23")
+fila_c3 <- c("2,6")
+fila_c4 <- c("No se repite ninguno")
+colnames(df_pval_drop_p1) <- c("Observaciones influyentes")
+
+df_pval_drop_p1[1,] <- fila_c1
+df_pval_drop_p1[2,] <- fila_c2
+df_pval_drop_p1[3,] <- fila_c3
+df_pval_drop_p1[4,] <- fila_c4
+df_pval_drop_p1
+```
+
+Y ahora comparamos los modelos con las muestras de entrenamiento sin eliminar influyentes y con las muestras modificadas.
+
+```{r}
+# PONER TABLA COMPARATIVA CON TEST DE LAS HIPOTESIS
+```
+
