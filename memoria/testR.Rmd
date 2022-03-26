@@ -857,6 +857,7 @@ En este modelo, bajo el criterio de elección de observaciones influyentes que e
 # Errores de Test. Comparacion de Modelos
 
 
+
 Nuestro razonamiento para enfrentarnos a esta sección es el siguiente, nos han salido dos modelos posibles y para comprender cual se ajusta mejor a nuestros datos vamos a escojer cinco seeds y evaluar cada modelo en todas ellas, a fin de hacer una media de los errores.
 
 Para esto usamos las tres seeds que hemos utilizado a lo largo del documento, y le añadimos otras dos elegidas al azar. Notese que evaluar en la primera seed ya esta hecho, pues en esta nos salian los dos modelos a considerar. Además en las seeds dos y tres ya está hecho para el modelo con H2S, pero hay que repetir el proceso con el otro modelo.
@@ -864,11 +865,311 @@ De esta manera relaizamos los mismos calculos que los realizados en la parte de 
 
 Con todo eso realizado llegamos a la siguiente tabla, que nos permite asumir como validos todos los casos y calcular sus errores.
 
-```{r}
+
+
+```{r include=FALSE}
 # INTRODUCIR SECCION 5
 # COMPLETAR TABLA OUTLIERS
 # CREO QUE TENIA QUE PONER HOMOEST ARRIBA
 # JUSTO EN EL SUMMARY DE LA SECCION 6 CREO QUE EL DATA NO DEBERIA SER CHEDDAR
+
+# Vamos a considerar otras dos semillas para evaluar los modelos y elegir el mejor.
+# Las tomamos de forma que no coincidan en la medida de lo posible los tests de las distintas particiones.
+# Dividimos el conjunto total para las dos semillas nuevas.
+
+set.seed((2234))
+train.4 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.4 <- (!train.4)
+sum(test.4)
+sum(test.1==TRUE & test.4==TRUE)
+sum(test.2==TRUE & test.4==TRUE)
+sum(test.3==TRUE & test.4==TRUE)
+
+
+set.seed((131))
+train.5 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.5 <- (!train.5)
+sum(test.5)
+sum(test.1==TRUE & test.5==TRUE)
+sum(test.2==TRUE & test.5==TRUE)
+sum(test.3==TRUE & test.5==TRUE)
+sum(test.4==TRUE & test.5==TRUE)
+
+train.1h <- train.1crit
+train.2h <- train.2
+train.3h <- train.3
+train.4h <- train.4
+train.5h <- train.5
+
+# Recalculamos train.2 porque fue modificado
+set.seed(1100)
+train.2 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+
+
+
+
+# Veamso si podemos eliminar posibles influyentes en los modelos restantes
+
+mh1 <- lm(taste ~ H2S + Lactic, data = cheddar[train.1h,]) # comprobados supuestos
+mh2 <- lm(taste ~ H2S + Lactic, data = cheddar[train.2h,]) # comprobados supuestos
+mh3 <- lm(taste ~ H2S + Lactic, data = cheddar[train.3h,]) # comprobados supuestos
+mh4 <- lm(taste ~ H2S + Lactic, data = cheddar[train.4h,])
+mh5 <- lm(taste ~ H2S + Lactic, data = cheddar[train.5h,])
+
+m1 <- lm(taste ~ Lactic, data = cheddar[train.1,]) # comprobados supuestos
+m2 <- lm(taste ~ Lactic, data = cheddar[train.2,])
+m3 <- lm(taste ~ Lactic, data = cheddar[train.3,])
+m4 <- lm(taste ~ Lactic, data = cheddar[train.4,])
+m5 <- lm(taste ~ Lactic, data = cheddar[train.5,])
+
+
+# Al igual que hicimos en 4 comprobamos si retirando outliers y observaciones influyentes mejoran las hipotesis.
+#  Unicamente consideraremos observaciones obtenidas tanto por outlierTest() como por influencePlot().
+
+# mh4
+outlierTest(mh4)
+influencePlot(mh4) # 6,12,15,24
+pos4h <- c(rep(FALSE,5),TRUE,rep(FALSE,5),TRUE,rep(FALSE,2),TRUE,rep(FALSE,8),TRUE,rep(FALSE,6))
+
+train.4inf <- train.4h&!pos4h
+mh4inf <- lm(taste ~ H2S+Lactic, data = cheddar[train.4inf,])
+
+ncvTest(mh4)
+ncvTest(mh4inf) # mejora MUCHO
+
+shapiro.test(resid(mh4))
+shapiro.test(resid(mh4inf)) # mejora
+
+durbinWatsonTest(mh4)
+durbinWatsonTest(mh4inf) # mejora
+
+resettest(mh4, power=2:3, type="regressor", data=cheddar[train.4inf,]) 
+resettest(mh4inf, power=2:3, type="regressor", data=cheddar[train.4inf,]) # empeora pero es aceptable
+
+# Redefinimos eliminando pos4h por ser tanta la mejora en homocedasticidad que compensa la linealidad
+train.4h <- train.4inf
+mh4 <- mh4inf
+
+
+# mh5
+outlierTest(mh5)
+influencePlot(mh5) # 6,7,8,12,15
+pos5h <- c(rep(FALSE,5),TRUE,TRUE,TRUE,rep(FALSE,3),TRUE,rep(FALSE,2),TRUE,rep(FALSE,15))
+
+train.5inf <- train.5h&!pos5h
+mh5inf <- lm(taste ~ H2S+Lactic, data = cheddar[train.5inf,])
+
+ncvTest(mh5)
+ncvTest(mh5inf) # mejora 
+
+shapiro.test(resid(mh5))
+shapiro.test(resid(mh5inf)) # empeora
+
+durbinWatsonTest(mh5)
+durbinWatsonTest(mh5inf) # a veces no se cumple la hipotesis nula de no autocorrelacion
+
+resettest(mh5, power=2:3, type="regressor", data=cheddar[train.5inf,]) 
+resettest(mh5inf, power=2:3, type="regressor", data=cheddar[train.5inf,]) # empeora
+
+# Decidimos no actualizar el modelo pues no siempre se rechaza la correlacion y empeoran otros p-valores.
+
+
+# m2
+outlierTest(m2)
+influencePlot(m2) # 1,12,15,18,24
+pos2 <- c(TRUE,rep(FALSE,10),TRUE,rep(FALSE,2),TRUE,rep(FALSE,2),TRUE,rep(FALSE,5),TRUE,rep(FALSE,6))
+
+train.2inf <- train.2&!pos2
+m2inf <- lm(taste ~ Lactic, data = cheddar[train.2inf,])
+
+ncvTest(m2)
+ncvTest(m2inf) # empeora ligeramente
+
+shapiro.test(resid(m2))
+shapiro.test(resid(m2inf)) # empeora ligeramente
+
+durbinWatsonTest(m2)
+durbinWatsonTest(m2inf) # empeora bastante
+
+resettest(m2, power=2:3, type="regressor", data=cheddar[train.2inf,]) 
+resettest(m2inf, power=2:3, type="regressor", data=cheddar[train.2inf,]) # mejora
+
+# Decicimos no redefinirlo, ya que empeora en muchas y mejora bastante en una
+
+
+# m3
+outlierTest(m3)
+influencePlot(m3) # 1,15,19,24
+pos3 <- c(TRUE,rep(FALSE,13),TRUE,rep(FALSE,3),TRUE,rep(FALSE,4),TRUE,rep(FALSE,6))
+
+train.3inf <- train.3&!pos3
+m3inf <- lm(taste ~ Lactic, data = cheddar[train.3inf,])
+
+ncvTest(m3)
+ncvTest(m3inf) # mejora poco
+
+shapiro.test(resid(m3))
+shapiro.test(resid(m3inf)) # mejora
+
+durbinWatsonTest(m3)
+durbinWatsonTest(m3inf) # empeora
+
+resettest(m3, power=2:3, type="regressor", data=cheddar[train.3inf,]) 
+resettest(m3inf, power=2:3, type="regressor", data=cheddar[train.3inf,]) # empeora casi lo pierde
+
+# Decidimos no redefinirlo por estar al borde en un criterio y no mejorar mucho en otros
+
+
+# m4
+outlierTest(m4)
+influencePlot(m4) # 6,12,15,20,24
+pos4 <- c(rep(FALSE,5),TRUE,rep(FALSE,5),TRUE,rep(FALSE,2),TRUE,rep(FALSE,4),TRUE,rep(FALSE,3),TRUE,rep(FALSE,6))
+
+train.4inf <- train.4&!pos4
+m4inf <- lm(taste ~ Lactic, data = cheddar[train.4inf,])
+
+ncvTest(m4)
+ncvTest(m4inf) # empeora bastante
+
+shapiro.test(resid(m4))
+shapiro.test(resid(m4inf)) # empeora
+
+durbinWatsonTest(m4)
+durbinWatsonTest(m4inf)# empeora bastante
+
+resettest(m4, power=2:3, type="regressor", data=cheddar[train.4inf,]) 
+resettest(m4inf, power=2:3, type="regressor", data=cheddar[train.4inf,]) # mejora algo
+
+# Decidimos no cambiarlo porque empeora en casi todo, y de por si tenia buenos p-values
+
+
+# m5
+outlierTest(m5)
+influencePlot(m5) # 1,8,12,15,18,24
+pos5 <- c(TRUE,rep(FALSE,6),TRUE,rep(FALSE,3),TRUE,rep(FALSE,2),TRUE,rep(FALSE,2),TRUE,rep(FALSE,5),TRUE,rep(FALSE,6))
+
+train.5inf <- train.5&!pos5
+m5inf <- lm(taste ~ Lactic, data = cheddar[train.5inf,])
+
+ncvTest(m5)
+ncvTest(m5inf) # empeora bastante
+
+shapiro.test(resid(m5))
+shapiro.test(resid(m5inf)) # mejora 
+
+durbinWatsonTest(m5)
+durbinWatsonTest(m5inf) # no se verifica la hipotesis nula de no autocorrelacion
+
+resettest(m5, power=2:3, type="regressor", data=cheddar[train.5inf,]) 
+resettest(m5inf, power=2:3, type="regressor", data=cheddar[train.5inf,]) # empeora
+
+# Decidimos no cambiarlo por perderse la correlación
+
+# Notese que en los originales siempre se cumplian las hipotesis, aunque no era necesario para el proceso
+
+
+
+
+lista_test <- list(test.1,test.2,test.3,test.4,test.5)
+lista_trainh <- list(train.1h,train.2h,train.3h,train.4h,train.5h)
+lista_train <- list(train.1,train.2,train.3,train.4,train.5)
+
+
+modelos_hip <- c("S1 taste ~ H2s + Lactic",
+                 "S1 taste ~ Lactic",
+                 "S2 taste ~ H2s + Lactic",
+                 "S2 taste ~ Lactic",
+                 "S3 taste ~ H2s + Lactic",
+                 "S3 taste ~ Lactic",
+                 "S4 taste ~ H2s + Lactic",
+                 "S4 taste ~ Lactic",
+                 "S5 taste ~ H2s + Lactic",
+                 "S5 taste ~ Lactic",
+                 "Nivel de significacion")
+
+hip_RL <- c("Distribución_normal",
+            "Media_0",
+            "Varianza_no_constante",
+            "No_Autocorrelación")
+placeholder <- vector(mode = "logical",length = 11)
+df_hipRL <- data.frame("0" = placeholder,
+                       "1" = placeholder,
+                       "2" = placeholder,
+                       "3" = placeholder,
+                       row.names = modelos_hip)
+
+colnames(df_hipRL) <- hip_RL
+
+r <- 1
+for (dtrain in lista_trainh){
+  model.HL.lm <- lm(taste ~ H2S + Lactic,
+                    data = cheddar[dtrain,])
+  residuos <- resid(model.HL.lm)
+  new_row <- c()
+  
+  shap <- round(shapiro.test(residuos)$p.value,4)
+  t <- t.test(residuos, mu = 0, alternative = "two.sided")$p.value
+  v <- round(ncvTest(model.HL.lm)$p,4)
+  dw <- round(durbinWatsonTest(model.HL.lm)$p,4)
+  
+  new_row = c(shap,t,v,dw)
+  df_hipRL[r,] <- new_row
+  r = r + 2
+}
+
+
+r <- 2
+for (dtrain in lista_train){
+  model.L.lm <- lm(taste ~Lactic,
+                   data = cheddar[dtrain,])
+  residuos <- resid(model.L.lm)
+  new_row <- c()
+  
+  shap <- round(shapiro.test(residuos)$p.value,4)
+  t <- t.test(residuos, mu = 0, alternative = "two.sided")$p.value
+  v <- round(ncvTest(model.L.lm)$p,4)
+  dw <- round(durbinWatsonTest(model.L.lm)$p,4)
+  
+  new_row = c(shap,t,v,dw)
+  df_hipRL[r,] <- new_row
+  r = r + 2
+}
+df_hipRL[11,] <- c(rep(0.05,4))
+df_hipRL # Todos los modelos cumplen las hipótesis
+
+
+
+err1 <- 0
+for (i in 5){
+  dtrain <- lista_trainh[[i]]
+  dtest <- lista_test[[i]]
+  dmod <- lm(taste ~ H2S + Lactic, data = cheddar[dtrain,])
+  Y <- cheddar[dtest,]$taste
+  Yhat <- predict(obj = dmod, newdata = cheddar[dtest,])
+  err1 <- err1 + mean((Y - Yhat)^2)
+}
+err1 <- err1/5
+err1 # H2S + LACTIC tiene error medio 11.63
+
+
+err2<-0
+for (i in 5){
+  dtrain <- lista_train[[i]]
+  dtest <- lista_test[[i]]
+  dmod <- lm(taste ~ Lactic, data = cheddar[dtrain,])
+  Y <- cheddar[dtest,]$taste
+  Yhat <- predict(obj = dmod, newdata = cheddar[dtest,])
+  err2 <- err2 + mean((Y - Yhat)^2)
+}
+err2 <- err2/5
+err2 # LACTIC tiene error medio 19.4
+
+err1 < err2 # Concluimos que el modelo taste ~ H2S + Lactic es mejor que taste ~ Lactic.
+
+
+```
+```{r render=lemon_print}
+df_hipRL
 ```
 
 # Conclusión: presentación del modelo final
