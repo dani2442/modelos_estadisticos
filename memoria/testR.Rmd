@@ -3,9 +3,8 @@ title: 'Regresión: Modelos Estadísticos'
 author:
 - name: Daniel López Montero
 - name: Rodrigo de la Nuez Moraleda
-- name: Jose
-- name: David
-date: "25/03/2022"
+- name: José García Repollo
+- name: David Parro Plaza
 output:
   pdf_document:
     number_sections: yes
@@ -45,7 +44,7 @@ la logarítmica
 
 **· Lactic:** Concentración de ácido láctico
 
-A lo largo del documento hacemos uso de las siguientes librerias de R:
+ <!-- A lo largo del documento hacemos uso de las siguientes librerias de R: -->
 ```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 library(faraway)
 library(leaps)
@@ -67,7 +66,7 @@ library(broom)
 library(tibble)
 ```
 
-Vamos a utilizar el dataset *Cheddar*. Cargamos los datos y enseñamos las primeras observaciones.
+Vamos a utilizar el dataset *Cheddar*, cargamos los datos y enseñamos las primeras observaciones.
 ```{r include=FALSE}
 # load cheddar cheddar
 data(cheddar) 
@@ -92,7 +91,7 @@ Si en nuestro dataset tuviesemos entradas vacías (NA), tenemos varias posibilid
   
 A continuación, comprobamos que no hay entradas vacías, 
 
-```{r echo=FALSE}
+```{r include=FALSE}
 # check if any entry has a missing value (NA)
 any(is.na(cheddar))
 ```
@@ -1161,15 +1160,24 @@ for (i in 5){
   Yhat <- predict(obj = dmod, newdata = cheddar[dtest,])
   err2 <- err2 + mean((Y - Yhat)^2)
 }
-err2 <- err2/5
-err2 # LACTIC tiene error medio 19.4
-
-err1 < err2 # Concluimos que el modelo taste ~ H2S + Lactic es mejor que taste ~ Lactic.
 
 
 ```
-```{r render=lemon_print}
+```{r render=lemon_print, echo=FALSE}
 df_hipRL
+
+
+```
+El error medio obtenido es:
+
+
+```{r echo=FALSE}
+err2 <- err2/5
+err2 # LACTIC tiene error medio 19.4
+```
+```{r echo=FALSE}
+err1 < err2 # Concluimos que el modelo taste ~ H2S + Lactic es mejor que taste ~ Lactic.
+
 ```
 
 # Conclusión: presentación del modelo final
