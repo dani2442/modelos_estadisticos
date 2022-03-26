@@ -290,7 +290,7 @@ influenceIndexPlot(model.all.lm)
 
 Vemos que la que más influye es la antes mencionada obsercación 15 y por tanto es posible que en el resto de modelos que estudiemos con más detalles salga de la muestra como observación influyente, si está en el conjunto *train*
 
-## ¿Cuál es el mejor modelo?
+# ¿Cuál es el mejor modelo?
 
 Como dice el **Principio de la Navaja de Ockham**, a menudo la explicación más simple es la correcta. Queremos seleccionar predictores que explican los datos de la manera más simple posible, sin disminuir la calidad de las predicciones mucho.
 
@@ -424,6 +424,7 @@ df_pval_drop_p1
 ```
 
 Con un estos p-valores podemos decir que con un nivel de significación $\alpha$ ningún modelo es notablemente diferente de su contraparte salvo en el caso de los modelos resultantes en *train2* esto puede ser por la cantidad de observaciones influyentes presentes en la muestra, lo trataremos en la siuigente sección.  
+
 # Diagnostico: Comprobaciones de hipotesis, outliers y observaciones influyentes
 
 En esta sección estudiaremos si nuestros modelos cumplen las condiciones
@@ -507,14 +508,17 @@ df_pval_drop_p1
 
 Podemos observar que se verifican a nivel de signifcación $\alpha$ = 0.05 se verifican todas las hopótesis de modelo de regresión lineal. En las siguientes gráficas podemos obsrevar como los residuos de los modelos **taste ~ H2S + L** de los conjuntos *train2* y *train3* se comportan mejor que cualquiera de los modelos propuestos en la muestra *train1*
 
-```{r echo=FALSE}
-par(mfrow=c(2,2))
+```{r echo=FALSE, fig.height=3, fig.width=6}
+par(mfrow=c(1,2))
 qqnorm(resid(model.1))
 qqline(resid(model.1))
 
 qqnorm(resid(model.1crit))
 qqline(resid(model.1crit))
 
+```
+```{r echo=FALSE, fig.height=3, fig.width=6}
+par(mfrow=c(1,2))
 qqnorm(resid(model.2))
 qqline(resid(model.2))
 
@@ -522,6 +526,7 @@ qqnorm(resid(model.3))
 qqline(resid(model.3))
 
 ```
+
 
 ## Estudio de outliers
 
@@ -596,27 +601,24 @@ df_pval_drop_p1
 
 Evidentemente el criterio 3 no es adecuado para nuestra muestra, la muestra resultante sería demasiado pequeña para ser apta para la regresión lineal. Tomaremos como criterio para eliminar de la muestra aquellas observaciones que hayan sido marcadas como influyentes en al menos dos criterios de influyentes.
 
-```{r echo=FALSE, fig.height=3.5, fig.width=6}
+```{r echo=FALSE}
 
-par(mfrow=c(1,2))
+par(mfrow=c(2,2))
 p1 <- influencePlot(model.1)
 pos_influyentes_1 <- c(1,12,24)
 
 p2 <-influencePlot(model.1crit)
 pos_influyentes_1crit <- c(1,8,12,23)
 
-
-
-```
-```{r echo=FALSE, fig.height=3.5, fig.width=6}
-par(mfrow=c(1,2))
 p3 <-influencePlot(model.2)
 pos_influyentes_2 <- c(1,6,7,8,15)
 
 
 p4 <-influencePlot(model.3)
 pos_influyentes_3 <- c(1,7,15,19,24)
+
 ```
+
 Estas observaciones también serán usadas a la hora de decidir las que consideramos influyentes.   
 
 Realizamos un estudio de la colinealidad. Se observa que el modelo **taste ~ Lactic , data=cheddar[train.1,]** solo tiene un predictor luego no hay presente ningún tipo colinealidad
@@ -679,10 +681,7 @@ pos_1<-c(TRUE,rep(FALSE,10),TRUE,rep(FALSE,18))
 train.1inf<-train.1&!pos_1
 model.1inf<- lm(taste ~ Lactic, data = cheddar[train.1inf,])
 ```
-<br>
-<br>
-<br>Comparaciones:  
-
+### taste ~  + Lactic, data = cheddar[train.1,] vs taste ~ Lactic, data = cheddar[train.1inf,]
 ```{r echo=FALSE, render=lemon_print}
 
 fila_linealidad <- c(round(resettest(model.1, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
@@ -712,7 +711,7 @@ df_pval_drop_p1 <- data.frame("1" = rep(0,5),"2" = rep(0,5),"3" = rep(0,5),row.n
                                                                          "Correlación"))
 
 
-colnames(df_pval_drop_p1) <-    c("train1: L","train1: L, sin influyentes", "Test utilizadp")
+colnames(df_pval_drop_p1) <-    c("train1: L","train1: L, sin influyentes", "Test utilizado")
 
 df_pval_drop_p1[1,] <- fila_linealidad
 df_pval_drop_p1[2,] <- fila_normalidad
@@ -721,7 +720,10 @@ df_pval_drop_p1[4,] <- fila_var_cte
 df_pval_drop_p1[5,] <- fila_corr
 df_pval_drop_p1
 ```
-**ESCRIBIR QUE ES MEJOR Y ACTUALIZAR DATOS**
+Nuestras hipótesis del modelo lineal se ven notablemente mejoradas, tenemos una distribución más parecida a una normal, mejor distribuida en torno a una lineal.  
+Realizamos un pequeño intercambio en el que nuestra varianza parece menos constante pero se mantiene por encima de todos los niveles de significación habituales.  
+Tomamos la decisión de actualizar *cheddar[train.1,]* con  *cheddar[traininf.1,]*, que es la versión sin observaciones influyentes.
+### taste ~ H2S + Lactic, data = cheddar[train.1,] vs taste ~ H2S + Lactic, data = cheddar[train.1critinf,]
 ```{r include=FALSE}
 train.1<-train.1inf
 model.1<-model.1inf
@@ -763,7 +765,7 @@ df_pval_drop_p1 <- data.frame("1" = rep(0,5),"2" = rep(0,5),"3" = rep(0,5),row.n
                                                                          "Correlación"))
 
 
-colnames(df_pval_drop_p1) <-    c("train1: L","train1: L, sin influyentes", "Test utilizadp")
+colnames(df_pval_drop_p1) <-    c("train1: H2S + L","train1: H2S + L, sin influyentes", "Test utilizado")
 
 df_pval_drop_p1[1,] <- fila_linealidad
 df_pval_drop_p1[2,] <- fila_normalidad
@@ -778,8 +780,11 @@ df_pval_drop_p1
 
 
 ```
+Este es un caso un tanto particular, tenemos unos datos perfectamente distribuidos, pero ya lo estaban antes practicamente. A cambio de eso perdemos un cierto grado de linealidad que hay que tener en cuenta, en este caso no hay una diferencia tan notable con el modelo como en que solo incorporaba a Lactic.  
 
-**ESCRIBIR QUE ES MEJOR Y ACTUALIZAR DATOS**
+Tomamos la decisión de actualizar *cheddar[train.1,]* con  *cheddar[train.1critinf,]*, que es la versión sin observaciones influyentes.
+
+### taste ~ H2S + Lactic, data = cheddar[train.2,] vs taste ~ H2S + Lactic, data = cheddar[train.2inf,]
 ```{r include=FALSE}
 train.1crit<-train.1critinf
 model.1crit<- model.1critinf
@@ -824,7 +829,7 @@ df_pval_drop_p1 <- data.frame("1" = rep(0,5),"2" = rep(0,5),"3" = rep(0,5),row.n
                                                                          "Correlación"))
 
 
-colnames(df_pval_drop_p1) <-    c("train1: L","train1: L, sin influyentes", "Test utilizadp")
+colnames(df_pval_drop_p1) <-    c("train2: H2S + L","train2: H2S + L, sin influyentes", "Test utilizado")
 
 df_pval_drop_p1[1,] <- fila_linealidad
 df_pval_drop_p1[2,] <- fila_normalidad
@@ -835,16 +840,21 @@ df_pval_drop_p1[5,] <- fila_corr
 
 df_pval_drop_p1
 ```
+En cierta manera es notable que al eliminar nuestras influyentes y en un *dataset* tan pequeño no genere a penas diferencia, en todo caso nos mejora todas las hipótesis del modelo lineal, se puede afirmar que es un modelo mejor para trabajar sobre el a priori.  
 
-**ESCRIBIR QUE ES MEJOR Y ACTUALIZAR DATOS**
+Tomamos la decisión de actualizar *cheddar[train.2,]* con  *cheddar[traininf.2,]*, que es la versión sin observaciones influyentes.
 ```{r include=FALSE}
 train.2<-train.2inf
 model.2<-model.2inf
 ```
+### taste ~ H2S + Lactic, data = cheddar[train.3,]  
+En este modelo, bajo el criterio de elección de observaciones influyentes que elegimos para tratar nuestros datos, este modelo no presentaba ninguna observación influyente, por lo que se mantiene como está.
+
 
 # Errores de Test. Comparacion de Modelos
 
 ```{r}
-# PONER TABLA COMPARATIVA CON TEST DE LAS HIPOTESIS
+# INTRODUCIR SECCION 5
+# COMPLETAR TABLA OUTLIERS
 ```
 
