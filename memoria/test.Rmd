@@ -58,6 +58,8 @@ library(GGally)
 library(corrplot)
 library(plotly)
 library(scatterplot3d)
+library(lmtest)
+library(mixlm)
 library(cowplot)
 library(knitr)
 library(lemon)
@@ -386,17 +388,139 @@ Por otro lado los modelos forward resultantes por *mixlm* son:
 
 **taste  ~ H2S + Lactic, data = cheddar[train.2,]** y por otro lado **taste  ~ H2S + Lactic, data = cheddar[train.3,]**.
 
+## Construcción por criterios
+
+En esta subsección trataremos de encontrar un candidato a mejor modelo, construyendo nuestros modelos usando distintos enfoques. Tras aplicar
+los siguientes criterios a la hora del desarrollo de modelos: $R^2$ ajustado, Cp de Mallows, Criterio de Informacion de Bayes (BIC), Criterio de Informacion de Akaike (AIC) (los desarrolos se pueden encontrar en el script), llegamos a las siguientes conclusiones:  
+solo aparece un modelo nuevo usando el criterio del estadístico $R^2$, **taste  ~ H2S + Lactic, data = cheddar[train.1,]**.  
+Notamos que la combinación de H2S + L aparece en todos nuestros conjuntos de entrenamiento en algón momento, es candidata a ser nuestra mejor elección.  
+
+Comparamos los modelos obtenidos hasta ahora en su respectiva muestra de entrenamiento con el modelo completo en ese conjunto de entrenamiento.
+
+
+```{r echo=FALSE, render=lemon_print}
+model.1 <- lm(taste ~ Lactic,  data=cheddar[train.1,])
+model.1crit <- lm(taste ~ H2S + Lactic, data=cheddar[train.1,])
+model.2 <- lm(taste ~ H2S + Lactic,  data=cheddar[train.2,])
+model.3 <- lm(taste ~ H2S +Lactic,  data=cheddar[train.3,])
+# anova(model.1,model.all1)[[6]]
+# anova(model.1crit,model.all1)[[6]]
+# anova(model.2,model.all2)
+# anova(model.3,model.all3)[[6]]
+fila_pvalores <- c(0.09821453,
+                   0.3362689,
+                   0.9551123,
+                   0.5551292)
+anova(model.1,model.all1)                
+df_pval_drop_p1 <- data.frame("1" = 1, "2" = 2,"3" = 3,"4"= 4, row.names = "p-valor")
+colnames(df_pval_drop_p1) <- c("train1: L vs Completo","train1: H2S + L vs Completo","train2: H2S + L vs Completo", "train1: H2S+ L vs Completo")
+df_pval_drop_p1[1,] <- fila_pvalores
+
+df_pval_drop_p1                   
+                   
 
 
 
 
+```
+
+Con un estos p-valores podemos decir que con un nivel de significación $\alpha$ ningún modelo es notablemente diferente de su contraparte salvo en el caso de los modelos resultantes en *train2* esto puede ser por la cantidad de observaciones influyentes presentes en la muestra, lo trataremos en la siuigente sección.  
+# Diagnostico: Comprobaciones de hipotesis, outliers y observaciones influyentes
+
+En esta sección estudiaremos si nuestros modelos cumplen las condiciones
+necesarias de un modelo de regresión lineal.  
+
+Nuestro enfoque consistirá en un analisis gráfico, acompañado de tests
+estadísticos en los casos en los que se aprecie una discrepancia notable.
+
+```{r include=FALSE}
+attach(cheddar)
+```
+
+## ¿Son nuestros *modelos*, modelos de regresión lineal?: Comprobación de hipótesis.
+
+En la sección 3 se toma un enfoque *naïve* a la hora de construir los modelos,
+ya que no hemos estudiado si hay observaciones influyentes, podríamos tener una
+muestra que no es la adecuada para el estudio de nuestros datos.  
+
+Un modelo de regresión lineal debe satisfacer las siguientes hipótesis con nivel 
+de siginificación $\alpha$ adecuado:
+
+1. Los errores \(\epsilon_{i}\) tienen distribución normal.  
+2. Los errores \(\epsilon_{i}\) tienen media cero.  
+3. Los errores \(\epsilon_{i}\) tienen varianza constante.  
+4. Los errores \(\epsilon_{i}\) no están correlacionados.  
+
+```{r include=FALSE}
+alfan <- 0.05
+
+fila_linealidad <- c(round(resettest(model.1, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
+                     round(resettest(model.1crit, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
+                     round(resettest(model.2, power=2:3, type="regressor", data=cheddar[train.2,])$p.value,3),
+                     round(resettest(model.3, power=2:3, type="regressor", data=cheddar[train.3,])$p.value,3),
+                     alfan,"Resettest")
 
 
+fila_normalidad <- c(round(shapiro.test(resid(model.1))$p.value,3),
+                     round(shapiro.test(resid(model.1crit))$p.value,3),
+                     round(shapiro.test(resid(model.2))$p.value,3),
+                     round(shapiro.test(resid(model.3))$p.value,3),
+                     alfan, "Test Shapiro Wilk")
+
+fila_mediaO <- c(t.test(resid(model.1), mu = 0, alternative = "two.sided")$p.value,
+                 t.test(resid(model.1crit), mu = 0, alternative = "two.sided")$p.value,
+                 t.test(resid(model.2), mu = 0, alternative = "two.sided")$p.value,
+                 t.test(resid(model.3), mu = 0, alternative = "two.sided")$p.value,
+                 alfan, "t-test")
 
 
+fila_var_cte <- c(round(ncvTest(model.1)$p,3),
+                  round(ncvTest(model.1crit)$p,3),
+                  round(ncvTest(model.2)$p,3),
+                  round(ncvTest(model.3)$p,3),
+                  alfan, "Test ncv")
+                  
+                  
+fila_corr <- c(durbinWatsonTest(model.1)$p,
+               durbinWatsonTest(model.1crit)$p,
+               durbinWatsonTest(model.2)$p,
+               durbinWatsonTest(model.3)$p,
+               alfan,"Test de Durbin-Watson")
+
+ 
+df_pval_drop_p1 <- data.frame("1" = rep(0,5),"2" = rep(0,5),"3" = rep(0,5),"4"= rep(0,5), "5"= rep(0,5), "6" = rep(0,5),
+                                                                             row.names =c("Linealidad",
+                                                                                          "Normalidad",
+                                                                                          "Media = 0",
+                                                                                          "Varianza constante",
+                                                                                          "Correlación"))
+
+colnames(df_pval_drop_p1) <-    c("train1: L","train1: H2S + L",
+                                  "train2: H2S + L",
+                                  "train3: H2S + L",
+                                  "Nivel de siginificación",
+                                  "Test utilizado")
+df_pval_drop_p1
+fila_linealidad
+df_pval_drop_p1[1,] <- fila_linealidad
+df_pval_drop_p1[2,] <- fila_normalidad
+df_pval_drop_p1[3,] <- fila_mediaO
+df_pval_drop_p1[4,] <- fila_var_cte
+df_pval_drop_p1[5,] <- fila_corr
+
+```
 
 
+```{r echo=FALSE, render=lemon_print}
+df_pval_drop_p1
+```
 
+
+Podemos observar que se verifican a nivel de signifcación $\alpha$ = 0.05 se verifican todas las hopótesis de modelo de refresión lineal.
+
+```{r}
+#PENDIENTE: qqplot qqnorm en grid de 2x2
+```
 
 
 
