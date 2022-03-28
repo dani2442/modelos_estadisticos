@@ -1,0 +1,629 @@
+---
+title: 'Regresión: Modelos Estadísticos'
+author:
+- name: Daniel López Montero
+- name: Rodrigo de la Nuez Moraleda
+- name: Jose
+- name: David
+date: "25/03/2022"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    df_print: paged
+  pdf_document:
+    number_sections: yes
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_notebook: default
+always_allow_html: yes
+abstract: |
+  Hemos analizado con las herramientas proporcionadas en el curso de Modelos Estadísticos el conjunto de datos, *Cheddar*, distribuido en la librería Faraway de R. Para ello hemos utilizado diversas técnicas de regresión lineal y   no lineal.
+subtitle: 'Conjunto de Datos: Cheddar Faraway'
+---
+
+
+# Introducción
+
+En un estudio de queso Cheddar realizado en el Valle de Latrobe (Victoria, Australia), se estudiaron muestras de queso en las que se analizó su composición química y fueron dadas a probar a distintos sujetos para que valoraran su sabor. Los valores asignados a cada queso son el resultado de combinar las distintas valoraciones. 
+
+El DataFrame **cheddar** de la librería **faraway** consiste de 30 muestras de queso Cheddar en las que se ha medido el sabor (*taste*) y las concentraciones de ácido acético (*Acetic*), ácido sulfhídrico (*H2S*) y lactosa (*Lactic*).
+
+
+Tenenemos un conjunto de datos en el que se recogen observaciones de una cata de
+quesos, nuestras variables son:   
+
+
+**· Taste:** una valoración subjetiva de los jueces.   
+
+**· Acetic:** la concentración de ácido acético en un queso de terminado en esca
+la logarítmica  
+
+**· H2S:** la concentración de sulfito de hidrógeno en escala logarítmica.
+
+**· Lactic:** Concentración de ácido láctico
+
+A lo largo del documento hacemos uso de las siguientes librerias de R:
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
+library(faraway)
+library(leaps)
+library(MASS)
+library(PASWR)
+library(car)
+library(ggplot2)
+library(plyr)
+library(GGally)
+library(corrplot)
+library(plotly)
+library(scatterplot3d)
+library(lmtest)
+library(mixlm)
+library(cowplot)
+library(knitr)
+library(lemon)
+```
+
+Vamos a utilizar el dataset *Cheddar*. Cargamos los datos y enseñamos las primeras observaciones.
+```{r include=FALSE}
+# load cheddar cheddar
+data(cheddar) 
+head(cheddar)
+```
+
+Si en nuestro dataset tuviesemos entradas vacías (NA), tenemos varias posibilidades para lidiar con este problema:
+
+* No utilizar/Eliminar las observación que contienen valores.
+
+* No utilizar/Eliminar las variables que contienen las entradas vacías.
+
+* Intentar completar los valores. Existen métodos menos y más sofisitcados:
+
+  + Remplezar con la **media, media o moda**.
+
+  + Crear una **nueva categoría** para valores vacíos.
+
+  + Utilizar algún modelo de **regresión**.
+
+  + Usar un modelo de **K-Nearest Neighbors (KNN)**.
+  
+A continuación, comprobamos que no hay entradas vacías, 
+
+```{r echo=FALSE}
+# check if any entry has a missing value (NA)
+any(is.na(cheddar))
+```
+
+
+```{r include=FALSE}
+sapply(cheddar, class)
+```
+
+Toas las variables son numéricas (**cuantitativas**). No hay que transformar las variables no cuantitativas (**cualitativas**), conviertiendolas en variables binarias. Para ello, podríamos deberíamos hacer encoding a variables binarias, el lenguage de programación R nos permite utilizar *as.numeric*.
+
+Con estas variables vamos a intentar **explicar** cómo los valores observados de una variable Y (taste) dependen de los valores de otras variables (Acetic, H2S, Latcic), a través de una relación funcional del tipo Y = f(X)
+También vamos a intentar **predecir** el valor de la variable Y para valores no observados de las variables X.
+
+Usamos el número de observaciones para determinar los conjuntos de train y test.  
+
+Tenemos 30 observaciones en nuestro dataset. Ahora procedemos a divirlo en el *conjunto de train y test*. El primero lo utilizaremos para entrenar nuestros modelos y el segundo lo usamos para cuantificar el error de los modelos.
+
+Ahora nos hacemos las siguientes preguntas: ¿Podemos suponer que la distribución de las variables es normal?,¿Tenemos alguna en la que falten datos?, ¿Tenemos *outliers*?, etc. En las siguientes secciones trataremos de responder a estas preguntas y muchas otras acercar de nuestro conjunto de datos.  
+
+Para asegurar que sea reproducible utilizamos una semilla, que permite fijar los valores pseudoaleatorios obtenidos en muchas de las funciones utilizadas.
+```{r include=FALSE}
+# Para asegurar que sea reproducible utilizamos una semilla, que permite fijar los valores pseudoaleatorios obtenidos en muchas de las funciones utilizadas.
+set.seed(1)
+train <- sample(c(TRUE, FALSE),
+                size = nrow(cheddar),
+                replace = TRUE,
+                prob = c(0.7, 0.3))
+test <- !train
+```
+
+Hacemos un pequeño estudio preliminar de nuestras variables. Mostramos un scatter plot de las cada variable contrastada con el resto. Esto permite ver *a ojo* si algún par de variables tiene correlación.  
+
+```{r echo=FALSE,,fig.width=7,fig.height=4}
+plot(cheddar)
+```
+  
+  Ahora, utilizamos la funcón *summary* de R, la cual nos permite estimar algunos de las características de la distribución del dataset. La siguiente tabla nos muestra los estadísticos más comunes: el mínimo, máximo, mediana, media y el 1er y 3er cuartil. 
+
+
+```{r,fig.height=2, include=FALSE,fig.width=5}
+summary(cheddar) # Distribución de las variables
+```
+
+
+```{r Attach, include=FALSE}
+attach(cheddar)
+```
+
+
+Ploteamos las gráficas de dispersion entre la variable respuesta *taste* y las variables predictoras *Acetic, H2S, Lactic*.
+
+```{r echo=FALSE,fig.width=7,fig.height=3}
+layout(matrix(1:3, nrow = 1))
+# plot taste ~ Acetic
+plot(Acetic, taste,
+     main = "Relación entre Taste y Acetic",
+     xlab = "Acetic", ylab = "Taste",
+     pch = 20, frame = FALSE)
+# plot taste ~ H2S
+plot(H2S, taste,
+     main = "Relación entre Taste y H2S",
+     xlab = "H2S", ylab = "Taste",
+     pch = 20, frame = FALSE)
+# plot taste ~ Lactic
+plot(Lactic, taste,
+     main = "Relaciónn entre Taste y Lactic",
+     xlab = "Lactic", ylab = "Taste",
+     pch = 19, frame = FALSE)
+```
+
+```{r include=FALSE}
+layout(matrix(1:1, nrow = 1))
+```
+
+Podemos observar que la que aperentemente guarda una menor relación lineal con taste es la variable Acetic, esto será comprobado con distintos tests
+
+
+# Estudio y evaluación del modelo completo.  
+
+Simplificamos nuestra notación para las variables. Intentaremos predecir la variable *taste* usando el resto de variables. Para empezar, definimos el modelo completo, el cual se usan todas las variables para nuestro modelo lineal múltiple.
+
+$$
+Y_i =\beta_0 + \beta_1 x_{i1} + \dots + \beta_{p-1}x_{i(p-1)} + \epsilon_i,\quad i=1,\dots,n
+$$
+donde $Y_i$ es el valor de la variable respuesta para el individuo $i$-ésimo, \
+$\beta_0$ y los $\beta_j$ son los par´ametros $j = 1, ..., p - 1$, \
+$x_{ij}$ son los elementos de la matriz de las variables explicativas \
+$\epsilon_i$ es el término del error aleatorio que suponemos que se distribuye como una $\mathcal{N}(0,\sigma^2)$, donde $\sigma^2$ es la varianza que suele ser desconocida.
+
+## Resolución mediante matrices
+
+Utilizamos el método de mínimos cuadrados que estima los valores $\hat{\beta}$ intentando minimizar los errores $\epsilon$. Como hemos visto en clase, la fórmula que se deduce es:
+
+$$ 
+\hat{\beta} = (X^tX)^{-1}X^tY
+$$
+donde $X$ es una columna de 1's concatenada con las variables que usamos para predecir. Es importante clarificar que en este proceso solo usamos el training set.
+
+```{r include=FALSE}
+x <- model.matrix( ~ Acetic + H2S + Lactic, data = cheddar)
+betahat <- solve(crossprod(x, x), crossprod(x, taste))
+betahat <- c(betahat)
+betahat
+```
+Por tanto, aproximamos las $\beta$ modelo lineal completo con los valores de $\hat{\beta}_0,\dots,\hat{\beta}_3$ con los siguientes valores:
+
+$$
+\hat{\beta}_0=-28.8767696,\quad\hat{\beta}_1=0.3277413,\quad\hat{\beta}_2=3.911841,\quad\hat{\beta}_3=19.6705434
+$$
+
+## Resolución usando librerias de R
+
+Podemos utilizar la función $lm$, ya programada en R. Definimos el modelo completo:
+
+$$
+taste \sim Acetic \, + \, H2S \, + \, Lactic, \,  \, data = cheddar
+$$
+
+```{r echo=FALSE, render=lemon_print}
+model.all.lm <- lm(taste ~ ., data = cheddar)
+
+fila_coef <- vector()
+df_anova <- data.frame("1" = 1, "2" = 2,"3" = 3,"4"=4, row.names = "Coeficientes")
+colnames(df_anova) <- c("Intercept","Acetic","H2S","Lactic")
+
+for(i in 1:4){
+fila_coef <- c(fila_coef,model.all.lm$coefficients[[i]])  
+}
+
+df_anova[1,] <- fila_coef
+df_anova
+
+```
+Evidentemente los resultados son los mismos.
+
+Estudiemos preliminarmente si es un modelo lineal adecuado, para ello 
+comprobaremos las hipótesis estándar del modelo lineal de regresión usando el **test de normalidad Shapiro-Wilk**. La función $shapiro.test$ le pasamos por parámetro el residuo/error de cada una de las muestras y nos devuelve un $p$-valor.
+
+
+```{r include=FALSE}
+shapiro.test(resid(model.all.lm))
+```
+Observamos que estamos en la hipótesis de que el error nuestro modelo se distribuye de manera normal, ya que el p-valor es $0.8865 > 0.05$. 
+
+Ahora nos preguntamos si hay variables que tienen un mayor impacto en el modelo. Estas variables podrían ser *outliers* y podríamos deshecharlas del training set ya que podrían estar perjudicando la predicción del modelo negativamente.
+
+```{r include=FALSE}
+summary(model.all.lm)
+```
+Obervamos el p-valor de Acetic en el resumen del modelo nos indica que con casi toda seguridad Acetic no tiene 
+impacto real en el modelo ( > 0.94)
+
+
+Los p-valores son lo suficientemente bajos como para rechazar varianza constante  
+
+Una vez hemos concluido que aunque estamos en las hipótesis de regresión lineal
+el modelo completo a pesar de ser el más complejo probablemente da resultados 
+similares a otro más simple.
+
+#### Correlaciones y tabla de resultados con el estudio de sus p-valores
+Usamos el paquete $GGplot$ de R, el cual nos permite visualizar la correlación y dispersión entre las distintas variables.
+
+```{r echo=FALSE, fig.height=3.5, fig.width=7, message=FALSE}
+corplot <- ggpairs(cheddar[train,], progress=FALSE)
+corplot 
+```
+
+Ahora utilizamos el anális **anova** (Analysis of Variance), para justificar si podemos eliminar alguna variable del modelo.
+
+```{r echo=FALSE, render=lemon_print}
+anova_table <- anova(model.all.lm)
+fila <- c(anova_table[1:3,5])
+df_anova <- data.frame("1" = 1, "2" = 2,"3" = 3, row.names = "p-valor")
+colnames(df_anova) <- c("Acetic","H2S","Lactic")
+df_anova[1,] <- fila
+df_anova
+```
+Todos nuestros p-valores son adecuados a un nivel $\alpha$ = 0.05. En nuestro caso nos vale, sin embargo, la variable *Lactic* no lo cumpliría si disminuimos el nivel de $\alpha$ a una cota inferior como 0.01.
+
+## ¿Tiene *outliers* nuestra muestra?
+
+Para comprobarlo basta realizar el **test de Bonferroni** sobre nuestro modelo completo:
+
+```{r include=FALSE}
+outlierTest(model.all.lm)
+```
+
+
+Concluimos con un nivel $\alpha$ = 0.05 que no tenemos ningún outlier en nuestra. Lo más cercano a un *outlier* que tenemos es la observación número 15, que tiene un valor **Bonferroni p** de 0.17453 (no se acerca a 0.05). Por tanto, no tenemos razones por las que eliminar alguna observación inusual de nuestro conjunto de datos. 
+
+Esto se puede comprobar graficamente a través del siguiente gráfico, el cual mide la influencia de cada observación sobre cada una de las betas de nuestro modelo. 
+
+```{r echo=FALSE, fig.height=3.6}
+influenceIndexPlot(model.all.lm)
+```
+
+Vemos que la que más influye es la antes mencionada obsercación 15 y por tanto es posible que en el resto de modelos que estudiemos con más detalles salga de la muestra como observación influyente, si está en el conjunto *train*
+
+## ¿Cuál es el mejor modelo?
+
+Como dice el **Principio de la Navaja de Ockham**, a menudo la explicación más simple es la correcta. Queremos seleccionar predictores que explican los datos de la manera más simple posible, sin disminuir la calidad de las predicciones mucho.
+
+### Separacion del dataset en conjuntos de entrenamiento y test (70-30%)  
+
+Hemos escogido distintas semillas para estar en condiciones de realizar un estudio más amplio, en la elección de las mismas se ha intentado
+evitar aquellas que generaban muestras demasiado similares. Las semillas usadas son 1, 1100 y 5 posteriormente se introducirán dos más.
+
+```{r include=FALSE}
+set.seed(1) 
+train.1 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.1 <- (!train.1)
+sum(test.1)
+model.all1 <- lm(taste ~ ., data = cheddar[train.1,])
+set.seed(1100) 
+train.2 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.2 <- (!train.2)
+sum(test.2)
+sum(test.1==TRUE & test.2==TRUE)#solo 1 preseguimos
+model.all2 <- lm(taste ~ ., data = cheddar[train.2,])
+set.seed(5) 
+train.3 <- sample(c(TRUE, FALSE), size = nrow(cheddar), replace = TRUE, prob = c(0.7, 0.3))
+test.3 <- (!train.3)
+sum(test.3)
+sum(test.1==TRUE & test.3==TRUE)
+sum(test.2==TRUE & test.3==TRUE)
+model.all3 <- lm(taste ~ ., data = cheddar[train.3,])
+```
+Consideremos los conjuntos de entrenamiento resultantes de las semillas: *train.1*(semilla 1), *train.2*(semilla 1100), *train.3*(semilla 5)
+
+### Método Backward
+
+Partimos del modelo completo estudiado en la sección anterior y aplicamos con $\alpha$ = 0.05, el metodo de Backward, que consiste en eliminar la variable que *menos influya* a la predicción. Primero realizamos una iteración explícita del método, posteriormente se construyen a través de  la libreria *mixlm* de R. 
+
+```{r echo=FALSE, render=lemon_print}
+# drop1(model.all.lm, test = "F")[[6]]
+fila_pvalores <- c(0.941979774, 0.004247081, 0.031079481  )
+df_pval_drop_p1 <- data.frame("1" = 1, "2" = 2,"3" = 3, row.names = "p-valor")
+colnames(df_pval_drop_p1) <- c("Acetic","H2S","Lactic")
+df_pval_drop_p1[1,] <- fila
+df_pval_drop_p1
+```
+
+Eliminamos Acetic del modelo debido que su p-valor es > 0.05.  
+
+```{r echo=FALSE, render=lemon_print}
+model.backward <- update(model.all.lm, . ~ . - Acetic)
+# drop1(model.backward, test = "F")[[6]]
+fila_pvalores <- c(0.001742869 , 0.018849870)
+df_pval_drop_p2 <- data.frame("1" = 1, "2" = 2, row.names = "p-valor")
+colnames(df_pval_drop_p2) <- c("H2S","Lactic")
+df_pval_drop_p2[1,] <- fila_pvalores
+df_pval_drop_p2
+```
+Repetimos el proceso con la variable H2S, ya que tiene un p-valor mayor que $\alpha = 0.05$
+
+```{r echo=FALSE, render=lemon_print}
+model.backward <- update(model.backward, . ~ . - H2S)
+#drop1(model.backward, test = "F")
+fila_pvalores <- c(1.405e-05)
+df_pval_drop_p3 <- data.frame("1" = 1, row.names = "p-valor")
+colnames(df_pval_drop_p3) <- c("Lactic")
+df_pval_drop_p3[1,] <- fila_pvalores
+df_pval_drop_p3
+```
+
+El p-valor es menor que $\alpha = 0.05$, por lo que hemos concluido, ya que no tenemos suficiente certeza para poder eliminar otra variable.Por tanto, tenemos como resultado que la variable que mejor explica el *taste* es *Lactic*. Modelo resultante: **taste  ~ Lactic, data = cheddar[train.1,]**.  
+
+Por otro lado los modelos backward resultantes por *mixlm* son:  
+
+**taste  ~ H2S + Lactic, data = cheddar[train.2,]** y por otro lado **taste  ~ H2S + Lactic, data = cheddar[train.3,]**.
+
+### Método Forward 
+
+El método Forward consiste en empezar con un modelo de una variable y vamos añadiendo las que más influyan, desarrollaremos el primer modelo de forma explícita y el resto los generaremos con *mixlm*.  De esta manera tenemos:  
+
+```{r echo=FALSE, render=lemon_print}
+SCOPE<-(~.+Acetic + H2S + Lactic)
+model.forward.lm <- lm(taste~1,data= cheddar[train,])
+#add1(model.forward.lm,scope=SCOPE,test="F")[[6]]
+fila_pvalores <- c(1.251786e-02, 2.115473e-05, 1.387923e-05)
+df_pval_drop_p1 <- data.frame("1" = 1, "2" = 2,"3" = 3, row.names = "p-valor")
+colnames(df_pval_drop_p1) <- c("Acetic","H2S","Lactic")
+df_pval_drop_p1[1,] <- fila_pvalores
+df_pval_drop_p1
+```
+Actualizamos añadiendo Lactic por tener el menor p-valor.
+```{r echo=FALSE, render=lemon_print}
+model.forward.lm <- update(model.forward.lm, .~. + Lactic)
+# add1(model.forward.lm,scope=SCOPE,test="F")[[6]]
+fila_pvalores <- c(0.50398774 ,0.051217115)
+df_pval_drop_p1 <- data.frame("1" = 1, "2" = 2, row.names = "p-valor")
+colnames(df_pval_drop_p1) <- c("Acetic","H2S")
+df_pval_drop_p1[1,] <- fila_pvalores
+df_pval_drop_p1
+```
+Con nivel de significación $\alpha$ = 0.05 este sería nuestro modelo final. Modelo resultante = **taste ~ Lactic, data = cheddar[train.1,]**  
+Por otro lado los modelos forward resultantes por *mixlm* son:  
+
+**taste  ~ H2S + Lactic, data = cheddar[train.2,]** y por otro lado **taste  ~ H2S + Lactic, data = cheddar[train.3,]**.
+
+## Construcción por criterios
+
+En esta subsección trataremos de encontrar un candidato a mejor modelo, construyendo nuestros modelos usando distintos enfoques. Tras aplicar
+los siguientes criterios a la hora del desarrollo de modelos: $R^2$ ajustado, Cp de Mallows, Criterio de Informacion de Bayes (BIC), Criterio de Informacion de Akaike (AIC) (los desarrolos se pueden encontrar en el script), llegamos a las siguientes conclusiones:  
+solo aparece un modelo nuevo usando el criterio del estadístico $R^2$, **taste  ~ H2S + Lactic, data = cheddar[train.1,]**.  
+Notamos que la combinación de H2S + L aparece en todos nuestros conjuntos de entrenamiento en algón momento, es candidata a ser nuestra mejor elección.  
+
+Comparamos los modelos obtenidos hasta ahora en su respectiva muestra de entrenamiento con el modelo completo en ese conjunto de entrenamiento.
+
+
+```{r echo=FALSE, render=lemon_print}
+model.1 <- lm(taste ~ Lactic,  data=cheddar[train.1,])
+model.1crit <- lm(taste ~ H2S + Lactic, data=cheddar[train.1,])
+model.2 <- lm(taste ~ H2S + Lactic,  data=cheddar[train.2,])
+model.3 <- lm(taste ~ H2S +Lactic,  data=cheddar[train.3,])
+# anova(model.1,model.all1)[[6]]
+# anova(model.1crit,model.all1)[[6]]
+# anova(model.2,model.all2)
+# anova(model.3,model.all3)[[6]]
+fila_pvalores <- c(0.09821453,
+                   0.3362689,
+                   0.9551123,
+                   0.5551292)
+anova(model.1,model.all1)                
+df_pval_drop_p1 <- data.frame("1" = 1, "2" = 2,"3" = 3,"4"= 4, row.names = "p-valor")
+colnames(df_pval_drop_p1) <- c("train1: L vs Completo","train1: H2S + L vs Completo","train2: H2S + L vs Completo", "train1: H2S+ L vs Completo")
+df_pval_drop_p1[1,] <- fila_pvalores
+df_pval_drop_p1                   
+                   
+```
+
+Con un estos p-valores podemos decir que con un nivel de significación $\alpha$ ningún modelo es notablemente diferente de su contraparte salvo en el caso de los modelos resultantes en *train2* esto puede ser por la cantidad de observaciones influyentes presentes en la muestra, lo trataremos en la siuigente sección.  
+# Diagnostico: Comprobaciones de hipotesis, outliers y observaciones influyentes
+
+En esta sección estudiaremos si nuestros modelos cumplen las condiciones
+necesarias de un modelo de regresión lineal.  
+
+Nuestro enfoque consistirá en un analisis gráfico, acompañado de tests
+estadísticos en los casos en los que se aprecie una discrepancia notable.
+
+```{r include=FALSE}
+attach(cheddar)
+```
+
+## ¿Son nuestros *modelos*, modelos de regresión lineal?: Comprobación de hipótesis.
+
+En la sección 3 se toma un enfoque *naïve* a la hora de construir los modelos,
+ya que no hemos estudiado si hay observaciones influyentes, podríamos tener una
+muestra que no es la adecuada para el estudio de nuestros datos.  
+
+Un modelo de regresión lineal debe satisfacer las siguientes hipótesis con nivel 
+de siginificación $\alpha$ adecuado:
+
+1. Los errores \(\epsilon_{i}\) tienen distribución normal.  
+2. Los errores \(\epsilon_{i}\) tienen media cero.  
+3. Los errores \(\epsilon_{i}\) tienen varianza constante.  
+4. Los errores \(\epsilon_{i}\) no están correlacionados.  
+
+```{r include=FALSE}
+alfan <- 0.05
+fila_linealidad <- c(round(resettest(model.1, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
+                     round(resettest(model.1crit, power=2:3, type="regressor", data=cheddar[train.1,])$p.value,3),
+                     round(resettest(model.2, power=2:3, type="regressor", data=cheddar[train.2,])$p.value,3),
+                     round(resettest(model.3, power=2:3, type="regressor", data=cheddar[train.3,])$p.value,3),
+                     alfan,"Resettest")
+fila_normalidad <- c(round(shapiro.test(resid(model.1))$p.value,3),
+                     round(shapiro.test(resid(model.1crit))$p.value,3),
+                     round(shapiro.test(resid(model.2))$p.value,3),
+                     round(shapiro.test(resid(model.3))$p.value,3),
+                     alfan, "Test Shapiro Wilk")
+fila_mediaO <- c(t.test(resid(model.1), mu = 0, alternative = "two.sided")$p.value,
+                 t.test(resid(model.1crit), mu = 0, alternative = "two.sided")$p.value,
+                 t.test(resid(model.2), mu = 0, alternative = "two.sided")$p.value,
+                 t.test(resid(model.3), mu = 0, alternative = "two.sided")$p.value,
+                 alfan, "t-test")
+fila_var_cte <- c(round(ncvTest(model.1)$p,3),
+                  round(ncvTest(model.1crit)$p,3),
+                  round(ncvTest(model.2)$p,3),
+                  round(ncvTest(model.3)$p,3),
+                  alfan, "Test ncv")
+                  
+                  
+fila_corr <- c(durbinWatsonTest(model.1)$p,
+               durbinWatsonTest(model.1crit)$p,
+               durbinWatsonTest(model.2)$p,
+               durbinWatsonTest(model.3)$p,
+               alfan,"Test de Durbin-Watson")
+ 
+df_pval_drop_p1 <- data.frame("1" = rep(0,5),"2" = rep(0,5),"3" = rep(0,5),"4"= rep(0,5), "5"= rep(0,5), "6" = rep(0,5),
+                                                                             row.names =c("Linealidad",
+                                                                                          "Normalidad",
+                                                                                          "Media = 0",
+                                                                                          "Varianza constante",
+                                                                                          "Correlación"))
+colnames(df_pval_drop_p1) <-    c("train1: L","train1: H2S + L",
+                                  "train2: H2S + L",
+                                  "train3: H2S + L",
+                                  "Nivel de siginificación",
+                                  "Test utilizado")
+df_pval_drop_p1
+fila_linealidad
+df_pval_drop_p1[1,] <- fila_linealidad
+df_pval_drop_p1[2,] <- fila_normalidad
+df_pval_drop_p1[3,] <- fila_mediaO
+df_pval_drop_p1[4,] <- fila_var_cte
+df_pval_drop_p1[5,] <- fila_corr
+```
+
+
+```{r echo=FALSE, render=lemon_print}
+df_pval_drop_p1
+```
+
+
+Podemos observar que se verifican a nivel de signifcación $\alpha$ = 0.05 se verifican todas las hopótesis de modelo de regresión lineal. En las siguientes gráficas podemos obsrevar como los residuos de los modelos **taste ~ H2S + L** de los conjuntos *train2* y *train3* se comportan mejor que cualquiera de los modelos propuestos en la muestra *train1*
+
+```{r echo=FALSE, render=lemon_print}
+par(mfrow=c(2,2))
+qqnorm(resid(model.1))
+qqline(resid(model.1))
+
+qqnorm(resid(model.1crit))
+qqline(resid(model.1crit))
+
+qqnorm(resid(model.2))
+qqline(resid(model.2))
+
+qqnorm(resid(model.3))
+qqline(resid(model.3))
+
+```
+
+# Conclusión: presentación del modelo final
+
+Finalmente por comparación de los errores sabemos que el modelo final que presenatmos es: taste ~ H2S + Lactic , que tiene sentido ya que Acetic no era significativa y que en la construcción de modelos salieron en todos los criterios salvo en uno este modelo.
+
+<!-- aqui hacerlo tabla con lo que me interesa -->
+```{r echo=FALSE}
+model.y <- lm(taste ~ H2S + Lactic,data=cheddar) 
+summary(model.y)
+# df<-data.frame("1"=)
+
+```
+A su vez enseñamos los graficos de este modelo:
+```{r echo=FALSE, render=lemon_print}
+plot(model.y)
+```
+
+Ahora vamos a asegurarnos que verifica las hipótesis para una regresión lineal y nos aseguramos con outlierTest  que no tenemos outliers.
+Y además de hacer una hipótesis de la media de los errores y ver que su varianza es constante, calculamos dicha varianza.
+<!-- Aqui debería ir tabla con pvalues de normalidad.... -->
+```{r echo=FALSE}
+df_pval_drop_p1 <- data.frame("1" = rep(0,1),"2" = rep(0,1),"3" = rep(0,1),"4" = rep(0,1),"5" = rep(0,1),"6" = rep(0,1),"7" = rep(0,1),
+                              row.names=c("model.y"))
+colnames(df_pval_drop_p1) <-    c("p-Outliers","p-Normalidad","p-Media nula","p-Homocedasticidad","Valor de varianza","p-Autocorrelación","p-Linealidad")
+df_pval_drop_p1[,1] <- outlierTest(model.y)$p
+df_pval_drop_p1[,2] <- shapiro.test(resid(model.y))$p
+df_pval_drop_p1[,3] <- t.test(resid(model.y),mu=0,alternative = "two.sided")$p.value
+df_pval_drop_p1[,4] <- ncvTest(model.y)$p
+df_pval_drop_p1[,5] <- sqrt(deviance(model.y)/df.residual(model.y))
+df_pval_drop_p1[,6] <- durbinWatsonTest(model.y)$p
+df_pval_drop_p1[,7] <- resettest(model.y, power=2:3, type="regressor", data=cheddar)$p.value
+
+df_pval_drop_p1
+```
+
+Dicho esto procedemos a la presentación del modelo con sus betas asociados, que si bien se pueden recoger del summary, también se pueden calcular de forma matricial igual que se hizo con el modelo completo en su momento.
+
+El resultado sería **taste ~ -27.591815 +3.9946267 H2S +19.887204 Lactic**
+Notese que sigue siendo acorde al modelo completo donde el $ \beta$ de Lactic es muy superior en comparación al de H2S.
+
+Presentamos ahora R^2^ y R^2^_adj_, estas si bien se pueden recojer directamente del summary, también las calculamos a partir de los errores y la tabla anova, dando el resultado de 0.6517024 y 0.6259025 respectivamente. Además presentamos el vector de p-valores
+
+<!-- Aqui iria un tabla que presente todo ello -->
+```{r echo=FALSE}
+summary(model.y)$coeff[,4]
+
+
+```
+
+
+También presentamos intervalos para las betas de Bonferroni y Scheffé, así como sus elipsoides
+<!-- Aqui va eso -->
+```{r echo=FALSE}
+alpha <- 0.10
+
+b <- summary(model.y)$coef[2:3, 1]
+s.b <- summary(model.y)$coef[2:3, 2]
+g <- 3
+n <- nrow(cheddar)
+p <- ncol(summary(model.y)$coef)
+t_teo <- qt(1 - alpha / (2 * g), n - p)
+BomSimCI <- matrix(c(b - t_teo * s.b, b + t_teo * s.b), ncol = 2)
+conf <- c("5%", "95%")
+bnam <- c("H2S", "Lactic")
+dimnames(BomSimCI) <- list(bnam, conf)
+# BomSimCI
+c1<-BomSimCI[1,]
+c2<-BomSimCI[2,]
+
+Q <- p - 1
+f_teo <- qf(0.9, Q, n - p)#0.9 no seria 0.95?
+SchSimCI <- matrix(c(b - sqrt(Q * f_teo) * s.b, b + sqrt(Q * f_teo) * s.b), ncol = 2)
+conf <- c("5%", "95%")
+bnam <- c("H2S", "Lactic")
+dimnames(SchSimCI) <- list(bnam, conf)
+# SchSimCI
+d1<-SchSimCI[1,]
+d2<-SchSimCI[2,]
+df_pval_drop_p1 <- data.frame("1" = rep(0,3),"2" = rep(0,3),"3" = rep(0,3),"4" = rep(0,3),
+                              row.names=c("H2S","Lactic","Porcentaje"))
+colnames(df_pval_drop_p1) <-    c("Bonferroni","Bonferroni","Scheffé","Scheffé")
+df_pval_drop_p1[1,] <- c(c1,d1)
+df_pval_drop_p1[2,] <- c(c2,d2)
+df_pval_drop_p1[3,] <- c("5%","95%","5%","95%")
+
+df_pval_drop_p1
+```
+Y finalmente buscamos una representación de la regresión que tenemos en 3 dimensiones ya que el modelo completo tenia tres variables y vemos el plano de regresión, marcando en rojo las observaciones que peor se ajustan.
+<!-- Aqui va eso, si lo puede oner otro mejor, pq a mi hay una grafica que no se me ejecuta -->
+
+```{r echo =FALSE}
+plot_ly(x=H2S, y=Lactic, z=taste, type="scatter3d", mode="marker", color=taste) %>% 
+  layout(scene = list(xaxis = list(title = 'H2S (%)'),
+                      yaxis = list(title = 'Lactic (%)'),
+                      zaxis = list(title = 'Taste (0-100)')))
+
+
+
+planereg <- scatterplot3d(x=H2S, y=Lactic, z=taste, pch=16, cex.lab=1,
+                          highlight.3d=TRUE, type="h", xlab='H2S (%)',
+                          ylab='Lactic (%)', zlab='Taste (0-100)')
+planereg$plane3d(model.y, lty.box="solid", col='mediumblue')
+
+```

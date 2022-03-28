@@ -1,10 +1,10 @@
 ---
 title: 'Regresión: Modelos Estadísticos'
 author:
-- name: Daniel López Montero
-- name: Rodrigo de la Nuez Moraleda
-- name: José García Repollo
-- name: David Parro Plaza
+- name: "Daniel López Montero"
+- name: "Rodrigo de la Nuez Moraleda"
+- name: "José García Repollo"
+- name: "David Parro Plaza"
 output:
   pdf_document:
     number_sections: yes
@@ -67,7 +67,7 @@ library(tibble)
 ```
 
 Vamos a utilizar el dataset *Cheddar*, cargamos los datos y enseñamos las primeras observaciones.
-```{r include=FALSE}
+```{r echo=FALSE}
 # load cheddar cheddar
 data(cheddar) 
 head(cheddar)
